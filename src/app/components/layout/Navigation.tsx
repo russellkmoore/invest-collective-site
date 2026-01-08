@@ -67,6 +67,9 @@ export function Navigation({ authInfo }: { authInfo?: AuthInfo | null } = {}) {
 
             {/* Tools */}
             <div className="flex gap-6">
+              <Link href="/research" className="text-gray-600 text-sm hover:text-blue-600 transition-colors">
+                Research
+              </Link>
               <Link href="/thesis-tracker" className="text-gray-600 text-sm hover:text-blue-600 transition-colors">
                 Thesis Tracker
               </Link>
@@ -76,9 +79,7 @@ export function Navigation({ authInfo }: { authInfo?: AuthInfo | null } = {}) {
               <Link href="/cycle-navigator" className="text-gray-600 text-sm hover:text-blue-600 transition-colors">
                 Cycle Navigator
               </Link>
-              <Link href="/research" className="text-gray-600 text-sm hover:text-blue-600 transition-colors">
-                Research
-              </Link>
+              
             </div>
           </div>
 
@@ -163,6 +164,13 @@ export function Navigation({ authInfo }: { authInfo?: AuthInfo | null } = {}) {
               <div className="space-y-3 pt-4 border-t border-gray-200">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tools</p>
                 <Link
+                  href="/research"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-gray-600 hover:text-blue-600 transition-colors py-2"
+                >
+                  Research
+                </Link>
+                <Link
                   href="/thesis-tracker"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="block text-gray-600 hover:text-blue-600 transition-colors py-2"
@@ -183,13 +191,7 @@ export function Navigation({ authInfo }: { authInfo?: AuthInfo | null } = {}) {
                 >
                   Cycle Navigator
                 </Link>
-                <Link
-                  href="/research"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block text-gray-600 hover:text-blue-600 transition-colors py-2"
-                >
-                  Research
-                </Link>
+                
               </div>
             </div>
           </div>
