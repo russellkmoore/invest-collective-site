@@ -25,6 +25,9 @@ const nextConfig: NextConfig = {
   // Reduce bundle size
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    serverActions: {
+      bodySizeLimit: '10mb', // Allow larger PDFs for research uploads
+    },
   },
 };
 
