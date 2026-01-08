@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24, // 24 hours
+        maxAge: 60 * 60 * 24 * 30, // 30 days (1 month, matching Cloudflare Access session)
         path: '/',
       });
       return response;
@@ -47,7 +47,7 @@ export function middleware(request: NextRequest) {
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24, // 24 hours (match Cloudflare Access session duration)
+        maxAge: 60 * 60 * 24 * 30, // 30 days (1 month, matching Cloudflare Access session duration)
         path: '/',
       });
     }
