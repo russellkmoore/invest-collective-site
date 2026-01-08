@@ -54,6 +54,48 @@ export default function SignupPage() {
       const result = await saveApplication(formDataObj);
 
       if (result.success) {
+        // Step 2: Send email notification from client (like contact form)
+        // This is best-effort - don't fail the submission if email fails
+        try {
+          const emailPayload = {
+            access_key: process.env.NEXT_PUBLIC_WEB3FORMS_KEY || '646715cb-7883-4f01-b624-002d1cee543f',
+            subject: 'New Invest Collective Application',
+            from_name: formData.name,
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            yearsInvesting: formData.yearsInvesting,
+            tradingStyle: formData.tradingStyle,
+            areasOfExpertise: formData.areasOfExpertise,
+            macroeconomicsKnowledge: formData.macroeconomicsKnowledge,
+            portfolioSize: formData.portfolioSize,
+            investingExperience: formData.investingExperience,
+            expectations: formData.expectations,
+            referralSource: formData.referralSource || 'Not specified',
+            // Add a message field that Web3Forms requires
+            message: `New member application from ${formData.name}`,
+          };
+
+          console.log('[SIGNUP-CLIENT] Sending email notification from client');
+          const emailResponse = await fetch('https://api.web3forms.com/submit', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(emailPayload),
+          });
+
+          const emailData = await emailResponse.json();
+          console.log('[SIGNUP-CLIENT] Email response:', emailData);
+
+          if (!emailResponse.ok || !emailData.success) {
+            console.error('[SIGNUP-CLIENT] Email failed but continuing:', emailData);
+          }
+        } catch (emailError) {
+          // Email is best-effort - don't fail the submission if it fails
+          console.error('[SIGNUP-CLIENT] Failed to send email notification:', emailError);
+        }
+
         setSubmitStatus('success');
         // Scroll to top to show success message
         window.scrollTo({ top: 0, behavior: 'smooth' });
