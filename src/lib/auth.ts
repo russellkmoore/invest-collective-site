@@ -1,11 +1,12 @@
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 
 /**
- * Get authentication information from Cloudflare Access headers
+ * Get authentication information from cookie or Cloudflare Access headers
  * Returns null if not authenticated
  *
- * Note: Cloudflare Access only sends headers on protected routes (/admin*).
- * This means auth status will only show when on admin pages.
+ * Auth state is persisted in a cookie after first admin page visit,
+ * so it remains visible across all pages even though Cloudflare Access
+ * only sends headers on protected routes (/admin*).
  */
 export async function getAuthInfo(): Promise<{
   isAuthenticated: boolean;
@@ -13,7 +14,23 @@ export async function getAuthInfo(): Promise<{
   userId?: string;
   groups?: string[];
 } | null> {
-  // In development mode
+  // Check for auth cookie first (set by middleware on admin routes)
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get('cf-auth-state');
+
+  if (authCookie) {
+    try {
+      const authState = JSON.parse(authCookie.value);
+      if (authState.isAuthenticated) {
+        return authState;
+      }
+    } catch (error) {
+      console.error('Failed to parse auth cookie:', error);
+      // Continue to check headers
+    }
+  }
+
+  // In development mode (fallback if cookie not set)
   if (process.env.NODE_ENV === 'development') {
     return {
       isAuthenticated: true,
@@ -23,6 +40,7 @@ export async function getAuthInfo(): Promise<{
     };
   }
 
+  // Check Cloudflare Access headers (only present on /admin routes)
   const headersList = await headers();
   const jwt = headersList.get('cf-access-jwt-assertion');
   const email = headersList.get('cf-access-authenticated-user-email');

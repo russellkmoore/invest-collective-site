@@ -6,25 +6,53 @@ export function middleware(request: NextRequest) {
 
   // /admin routes are protected by Cloudflare Zero Trust at the edge
   // If a request reaches this middleware, Zero Trust has already authenticated the user
-  // This middleware just logs access for debugging purposes
+  // This middleware sets an auth cookie to persist auth state across all pages
   if (path.startsWith('/admin')) {
-    // In development, allow unrestricted access
+    const response = NextResponse.next();
+
+    // In development, set a dev cookie
     if (process.env.NODE_ENV === 'development') {
       console.log('Admin access granted (development mode)');
-      return NextResponse.next();
+      response.cookies.set('cf-auth-state', JSON.stringify({
+        isAuthenticated: true,
+        email: 'dev@localhost',
+        userId: 'dev-user',
+      }), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24, // 24 hours
+        path: '/',
+      });
+      return response;
     }
 
-    // In production, Cloudflare Zero Trust handles authentication
-    // Log the access for monitoring
-    console.log('Admin access:', {
-      path,
-      timestamp: new Date().toISOString(),
-      hasJWT: !!request.headers.get('cf-access-jwt-assertion'),
-      hasClientId: !!request.headers.get('cf-access-client-id'),
-    });
+    // In production, extract auth from Cloudflare Access headers and set cookie
+    const jwt = request.headers.get('cf-access-jwt-assertion');
+    const email = request.headers.get('cf-access-authenticated-user-email');
 
-    // Allow access - Cloudflare Zero Trust has already verified the user
-    return NextResponse.next();
+    if (jwt && email) {
+      console.log('Admin access:', {
+        path,
+        timestamp: new Date().toISOString(),
+        email,
+      });
+
+      // Set auth cookie to persist across all pages
+      response.cookies.set('cf-auth-state', JSON.stringify({
+        isAuthenticated: true,
+        email,
+        timestamp: Date.now(),
+      }), {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24, // 24 hours (match Cloudflare Access session duration)
+        path: '/',
+      });
+    }
+
+    return response;
   }
 
   return NextResponse.next();
