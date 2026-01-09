@@ -59,22 +59,22 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Thesis Management (Coming Soon) */}
+          {/* Thesis Management */}
           <Link
             href="/admin/thesis"
-            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-8 opacity-60 hover:opacity-100 hover:shadow-md hover:border-amber-300 transition-all"
+            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-8 hover:opacity-100 hover:shadow-md hover:border-amber-300 transition-all"
           >
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-amber-100 p-4 rounded-full group-hover:bg-amber-200 transition-colors">
                 <Target className="w-8 h-8 text-amber-600 transition-colors" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Thesis</h2>
+              <h2 className="text-2xl font-bold text-gray-900 group-hover:text-amber-600 transition-colors">Thesis</h2>
             </div>
             <p className="text-gray-600 mb-4">
               Manage investment theses, track positions, and monitor performance against targets.
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-400 group-hover:text-gray-600">
-              <span>Coming soon</span>
+              <span>View Thesis</span>
               <span>→</span>
             </div>
           </Link>
@@ -119,22 +119,22 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Settings (Coming Soon) */}
+          {/* Settings */}
           <Link
             href="/admin/settings"
-            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-8 opacity-60 hover:opacity-100 hover:shadow-md hover:border-gray-400 transition-all"
+            className="group bg-white rounded-xl shadow-sm border border-gray-200 p-8 hover:opacity-100 hover:shadow-md hover:border-gray-400 transition-all"
           >
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-gray-100 p-4 rounded-full group-hover:bg-gray-200 transition-colors">
                 <Settings className="w-8 h-8 text-gray-600 transition-colors" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+              <h2 className="text-2xl font-bold text-gray-900 group-hover:text-gray-950 transition-colors">Settings</h2>
             </div>
             <p className="text-gray-600 mb-4">
               Configure website settings, integrations, admin preferences, and access control.
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-400 group-hover:text-gray-600">
-              <span>Coming soon</span>
+              <span>View Settings</span>
               <span>→</span>
             </div>
           </Link>
