@@ -1,62 +1,210 @@
-'use client';
+import Link from 'next/link';
+import { TrendingUp, Filter, BarChart3 } from 'lucide-react';
+import { getAllTheses } from '../admin/thesis/actions';
+import ThesisCard from '@/components/ThesisCard';
 
-import { ChartLine } from 'lucide-react';
+export const dynamic = 'force-dynamic';
 
-export default function ThesisTrackerPage() {
+export const metadata = {
+  title: 'Thesis Tracker | The Invest Collective',
+  description:
+    'Track our investment hypotheses and predictions with transparent, data-driven analysis. See our accuracy over time.',
+};
+
+export default async function ThesisTrackerPage({
+  searchParams,
+}: {
+  searchParams: { category?: string; status?: string };
+}) {
+  const category = searchParams.category;
+  const status = searchParams.status;
+
+  // Fetch theses with filters
+  const filters: { category?: string; status?: string } = {};
+  if (category) filters.category = category;
+  if (status) filters.status = status;
+
+  const allTheses = await getAllTheses(filters);
+
+  // Calculate stats
+  const activeTheses = allTheses.filter((t) => t.status === 'active');
+  const closedTheses = allTheses.filter((t) => t.status === 'closed');
+  const successfulTheses = closedTheses.filter((t) => (t.outcome_score || 0) >= 70);
+  const overallAccuracy =
+    closedTheses.length > 0
+      ? Math.round((successfulTheses.length / closedTheses.length) * 100)
+      : 0;
+
+  // Get unique categories for filter
+  const categories = Array.from(new Set(allTheses.map((t) => t.category)));
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <ChartLine className="w-12 h-12 text-blue-600" />
-            <h1 className="text-4xl font-bold text-gray-900">Thesis Tracker</h1>
+          <div className="flex justify-center mb-6">
+            <div className="bg-blue-100 p-6 rounded-full">
+              <TrendingUp className="w-12 h-12 text-blue-600" />
+            </div>
           </div>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Track and monitor your investment theses, analyze performance, and refine your strategies based on real-time data and outcomes.
+          <h1 className="text-5xl font-bold text-gray-900 mb-4">Investment Thesis Tracker</h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
+            We make predictions. We track them. We show you the results—both wins and losses.
+            Transparency builds trust.
           </p>
+          <Link
+            href="/thesis-tracker/performance"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          >
+            <BarChart3 className="w-5 h-5" />
+            View Performance Dashboard
+          </Link>
         </div>
 
-        {/* Coming Soon Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-          <div className="max-w-2xl mx-auto">
-            <div className="mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
-                <ChartLine className="w-10 h-10 text-blue-600" />
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <div className="text-sm text-gray-600 mb-1">Total Theses</div>
+            <div className="text-3xl font-bold text-gray-900">{allTheses.length}</div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <div className="text-sm text-gray-600 mb-1">Active</div>
+            <div className="text-3xl font-bold text-blue-600">{activeTheses.length}</div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <div className="text-sm text-gray-600 mb-1">Completed</div>
+            <div className="text-3xl font-bold text-gray-900">{closedTheses.length}</div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+            <div className="text-sm text-gray-600 mb-1">Overall Accuracy</div>
+            <div className="text-3xl font-bold text-green-600">
+              {closedTheses.length > 0 ? `${overallAccuracy}%` : 'N/A'}
+            </div>
+            {closedTheses.length > 0 && (
+              <div className="text-xs text-gray-500 mt-1">
+                {successfulTheses.length} of {closedTheses.length} successful
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow border border-gray-200 p-6 mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Filter Theses</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/thesis-tracker"
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    !category
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All
+                </Link>
+                {categories.map((cat) => (
+                  <Link
+                    key={cat}
+                    href={`/thesis-tracker?category=${cat}${status ? `&status=${status}` : ''}`}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      category === cat
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {cat.replace('_', ' ').charAt(0).toUpperCase() +
+                      cat.replace('_', ' ').slice(1)}
+                  </Link>
+                ))}
               </div>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Coming Soon</h2>
-            <p className="text-lg text-gray-600 mb-8">
-              We're building a powerful thesis tracking tool to help you document, monitor, and evaluate your investment ideas over time. Stay tuned for updates!
-            </p>
-            <div className="grid md:grid-cols-2 gap-6 text-left">
-              <div className="p-6 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">Track Performance</h3>
-                <p className="text-sm text-gray-600">
-                  Monitor how your investment theses perform against benchmarks and adjust as market conditions change.
-                </p>
-              </div>
-              <div className="p-6 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">Document Insights</h3>
-                <p className="text-sm text-gray-600">
-                  Keep detailed records of your reasoning, catalysts, risks, and key metrics for each thesis.
-                </p>
-              </div>
-              <div className="p-6 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">Collaborate</h3>
-                <p className="text-sm text-gray-600">
-                  Share theses with group members, get feedback, and learn from collective insights.
-                </p>
-              </div>
-              <div className="p-6 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">Analyze Results</h3>
-                <p className="text-sm text-gray-600">
-                  Review historical theses to improve your process and identify patterns in your decision-making.
-                </p>
+
+            {/* Status Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/thesis-tracker${category ? `?category=${category}` : ''}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    !status
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All
+                </Link>
+                <Link
+                  href={`/thesis-tracker?status=active${category ? `&category=${category}` : ''}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    status === 'active'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Active
+                </Link>
+                <Link
+                  href={`/thesis-tracker?status=closed${category ? `&category=${category}` : ''}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    status === 'closed'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Closed
+                </Link>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Active Theses Section */}
+        {(!status || status === 'active') && activeTheses.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Active Theses ({activeTheses.length})
+            </h2>
+            <div className="grid gap-6">
+              {activeTheses.map((thesis) => (
+                <ThesisCard key={thesis.id} thesis={thesis} href={`/thesis-tracker/${thesis.slug}`} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Closed Theses Section */}
+        {(!status || status === 'closed') && closedTheses.length > 0 && (
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Completed Theses ({closedTheses.length})
+            </h2>
+            <div className="grid gap-6">
+              {closedTheses.map((thesis) => (
+                <ThesisCard key={thesis.id} thesis={thesis} href={`/thesis-tracker/${thesis.slug}`} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {allTheses.length === 0 && (
+          <div className="text-center py-16">
+            <TrendingUp className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Theses Yet</h3>
+            <p className="text-gray-600">
+              We're working on creating our first investment theses. Check back soon!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
