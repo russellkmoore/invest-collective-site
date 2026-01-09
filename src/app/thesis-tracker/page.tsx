@@ -14,10 +14,12 @@ export const metadata = {
 export default async function ThesisTrackerPage({
   searchParams,
 }: {
-  searchParams: { category?: string; status?: string };
+  searchParams: { category?: string; status?: string; page?: string };
 }) {
   const category = searchParams.category;
   const status = searchParams.status;
+  const currentPage = parseInt(searchParams.page || '1', 10);
+  const ITEMS_PER_PAGE = 10;
 
   // Fetch ALL theses first (no filters) for stats and category list
   const allThesesUnfiltered = await getAllTheses();
@@ -42,9 +44,27 @@ export default async function ThesisTrackerPage({
 
   const allTheses = await getAllTheses(filters);
 
-  // Calculate filtered stats for display sections
-  const activeTheses = allTheses.filter((t) => t.status === 'active');
-  const closedTheses = allTheses.filter((t) => t.status === 'closed');
+  // Sort and calculate filtered stats for display sections
+  // Active theses: sort by most recent (created_at DESC)
+  const activeTheses = allTheses
+    .filter((t) => t.status === 'active')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Closed theses: sort by most recently closed (closed_at DESC)
+  const closedTheses = allTheses
+    .filter((t) => t.status === 'closed')
+    .sort((a, b) => {
+      const dateA = a.closed_at ? new Date(a.closed_at).getTime() : 0;
+      const dateB = b.closed_at ? new Date(b.closed_at).getTime() : 0;
+      return dateB - dateA;
+    });
+
+  // Pagination for closed theses (active theses typically fewer, so no pagination needed)
+  const totalClosedPages = Math.ceil(closedTheses.length / ITEMS_PER_PAGE);
+  const paginatedClosedTheses = closedTheses.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -197,14 +217,94 @@ export default async function ThesisTrackerPage({
         {/* Closed Theses Section */}
         {(!status || status === 'closed') && closedTheses.length > 0 && (
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Completed Theses ({closedTheses.length})
-            </h2>
-            <div className="grid gap-6">
-              {closedTheses.map((thesis) => (
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-gray-900">
+                Completed Theses ({closedTheses.length})
+              </h2>
+              {totalClosedPages > 1 && (
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {totalClosedPages}
+                </div>
+              )}
+            </div>
+            <div className="grid gap-6 mb-8">
+              {paginatedClosedTheses.map((thesis) => (
                 <ThesisCard key={thesis.id} thesis={thesis} href={`/thesis-tracker/${thesis.slug}`} />
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {totalClosedPages > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <Link
+                  href={`/thesis-tracker?${category ? `category=${category}&` : ''}${
+                    status ? `status=${status}&` : ''
+                  }page=${Math.max(1, currentPage - 1)}#filters`}
+                  scroll={false}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                  aria-disabled={currentPage === 1}
+                >
+                  Previous
+                </Link>
+
+                <div className="flex gap-2">
+                  {Array.from({ length: totalClosedPages }, (_, i) => i + 1)
+                    .filter((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      return (
+                        page === 1 ||
+                        page === totalClosedPages ||
+                        Math.abs(page - currentPage) <= 1
+                      );
+                    })
+                    .map((page, idx, arr) => {
+                      // Add ellipsis if there's a gap
+                      const prevPage = arr[idx - 1];
+                      const showEllipsis = prevPage && page - prevPage > 1;
+
+                      return (
+                        <div key={page} className="flex gap-2">
+                          {showEllipsis && (
+                            <span className="px-3 py-2 text-gray-400">...</span>
+                          )}
+                          <Link
+                            href={`/thesis-tracker?${category ? `category=${category}&` : ''}${
+                              status ? `status=${status}&` : ''
+                            }page=${page}#filters`}
+                            scroll={false}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              currentPage === page
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            {page}
+                          </Link>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <Link
+                  href={`/thesis-tracker?${category ? `category=${category}&` : ''}${
+                    status ? `status=${status}&` : ''
+                  }page=${Math.min(totalClosedPages, currentPage + 1)}#filters`}
+                  scroll={false}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    currentPage === totalClosedPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                  aria-disabled={currentPage === totalClosedPages}
+                >
+                  Next
+                </Link>
+              </div>
+            )}
           </div>
         )}
 
