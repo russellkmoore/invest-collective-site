@@ -19,24 +19,32 @@ export default async function ThesisTrackerPage({
   const category = searchParams.category;
   const status = searchParams.status;
 
-  // Fetch theses with filters
+  // Fetch ALL theses first (no filters) for stats and category list
+  const allThesesUnfiltered = await getAllTheses();
+
+  // Get unique categories from all theses (not filtered)
+  const categories = Array.from(new Set(allThesesUnfiltered.map((t) => t.category)));
+
+  // Calculate overall stats from unfiltered data
+  const totalTheses = allThesesUnfiltered.length;
+  const totalActive = allThesesUnfiltered.filter((t) => t.status === 'active').length;
+  const totalClosed = allThesesUnfiltered.filter((t) => t.status === 'closed').length;
+  const successfulTheses = allThesesUnfiltered.filter(
+    (t) => t.status === 'closed' && (t.outcome_score || 0) >= 70
+  );
+  const overallAccuracy =
+    totalClosed > 0 ? Math.round((successfulTheses.length / totalClosed) * 100) : 0;
+
+  // Now apply filters for display
   const filters: { category?: string; status?: string } = {};
   if (category) filters.category = category;
   if (status) filters.status = status;
 
   const allTheses = await getAllTheses(filters);
 
-  // Calculate stats
+  // Calculate filtered stats for display sections
   const activeTheses = allTheses.filter((t) => t.status === 'active');
   const closedTheses = allTheses.filter((t) => t.status === 'closed');
-  const successfulTheses = closedTheses.filter((t) => (t.outcome_score || 0) >= 70);
-  const overallAccuracy =
-    closedTheses.length > 0
-      ? Math.round((successfulTheses.length / closedTheses.length) * 100)
-      : 0;
-
-  // Get unique categories for filter
-  const categories = Array.from(new Set(allTheses.map((t) => t.category)));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -66,31 +74,31 @@ export default async function ThesisTrackerPage({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Total Theses</div>
-            <div className="text-3xl font-bold text-gray-900">{allTheses.length}</div>
+            <div className="text-3xl font-bold text-gray-900">{totalTheses}</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Active</div>
-            <div className="text-3xl font-bold text-blue-600">{activeTheses.length}</div>
+            <div className="text-3xl font-bold text-blue-600">{totalActive}</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Completed</div>
-            <div className="text-3xl font-bold text-gray-900">{closedTheses.length}</div>
+            <div className="text-3xl font-bold text-gray-900">{totalClosed}</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Overall Accuracy</div>
             <div className="text-3xl font-bold text-green-600">
-              {closedTheses.length > 0 ? `${overallAccuracy}%` : 'N/A'}
+              {totalClosed > 0 ? `${overallAccuracy}%` : 'N/A'}
             </div>
-            {closedTheses.length > 0 && (
+            {totalClosed > 0 && (
               <div className="text-xs text-gray-500 mt-1">
-                {successfulTheses.length} of {closedTheses.length} successful
+                {successfulTheses.length} of {totalClosed} successful
               </div>
             )}
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6 mb-8">
+        <div id="filters" className="bg-white rounded-lg shadow border border-gray-200 p-6 mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-gray-600" />
             <h2 className="text-lg font-semibold text-gray-900">Filter Theses</h2>
@@ -102,7 +110,8 @@ export default async function ThesisTrackerPage({
               <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href="/thesis-tracker"
+                  href="/thesis-tracker#filters"
+                  scroll={false}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     !category
                       ? 'bg-blue-600 text-white'
@@ -114,7 +123,8 @@ export default async function ThesisTrackerPage({
                 {categories.map((cat) => (
                   <Link
                     key={cat}
-                    href={`/thesis-tracker?category=${cat}${status ? `&status=${status}` : ''}`}
+                    href={`/thesis-tracker?category=${cat}${status ? `&status=${status}` : ''}#filters`}
+                    scroll={false}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       category === cat
                         ? 'bg-blue-600 text-white'
@@ -133,7 +143,8 @@ export default async function ThesisTrackerPage({
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href={`/thesis-tracker${category ? `?category=${category}` : ''}`}
+                  href={`/thesis-tracker${category ? `?category=${category}` : ''}#filters`}
+                  scroll={false}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     !status
                       ? 'bg-blue-600 text-white'
@@ -143,7 +154,8 @@ export default async function ThesisTrackerPage({
                   All
                 </Link>
                 <Link
-                  href={`/thesis-tracker?status=active${category ? `&category=${category}` : ''}`}
+                  href={`/thesis-tracker?status=active${category ? `&category=${category}` : ''}#filters`}
+                  scroll={false}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     status === 'active'
                       ? 'bg-blue-600 text-white'
@@ -153,7 +165,8 @@ export default async function ThesisTrackerPage({
                   Active
                 </Link>
                 <Link
-                  href={`/thesis-tracker?status=closed${category ? `&category=${category}` : ''}`}
+                  href={`/thesis-tracker?status=closed${category ? `&category=${category}` : ''}#filters`}
+                  scroll={false}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     status === 'closed'
                       ? 'bg-blue-600 text-white'
