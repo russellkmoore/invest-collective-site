@@ -14,11 +14,12 @@ export const metadata = {
 export default async function ThesisTrackerPage({
   searchParams,
 }: {
-  searchParams: { category?: string; status?: string; page?: string };
+  searchParams: Promise<{ category?: string; status?: string; page?: string }>;
 }) {
-  const category = searchParams.category;
-  const status = searchParams.status;
-  const currentPage = parseInt(searchParams.page || '1', 10);
+  const params = await searchParams;
+  const category = params.category;
+  const status = params.status;
+  const currentPage = parseInt(params.page || '1', 10);
   const ITEMS_PER_PAGE = 10;
 
   // Fetch ALL theses first (no filters) for stats and category list
