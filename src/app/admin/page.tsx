@@ -159,6 +159,13 @@ export default function AdminDashboard() {
               <span className="font-medium text-gray-900">Manage Articles</span>
             </Link>
             <Link
+              href="/admin/thesis/create"
+              className="flex items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+            >
+              <Target className="w-5 h-5 text-amber-600" />
+              <span className="font-medium text-gray-900">Create New Thesis</span>
+            </Link>
+            <Link
               href="/admin/analytics"
               className="flex items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
             >

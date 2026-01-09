@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plus, TrendingUp, Clock, Target } from 'lucide-react';
+import { Plus, TrendingUp, Clock, Target, ChevronLeft } from 'lucide-react';
 import { getAllTheses } from './actions';
 import {
   getStatusColor,
@@ -17,7 +17,24 @@ export default async function AdminThesisListPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        {/* Back Button */}
+        <div className="mb-6 flex items-center justify-between">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            <span>Back to Admin Dashboard</span>
+          </Link>
+          <Link
+            href="/thesis-tracker"
+            className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+          >
+            View Public Thesis Tracker →
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -235,6 +252,16 @@ export default async function AdminThesisListPage() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Back to Admin */}
+        <div className="mt-8">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            ← Back to Admin Dashboard
+          </Link>
         </div>
       </div>
     </div>
