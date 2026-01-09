@@ -114,7 +114,7 @@ export default async function AdminThesisListPage() {
               </Link>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {activeTheses.map((thesis) => {
                 const daysRemaining = calculateDaysRemaining(thesis.prediction_end_date);
                 const timeProgress = calculateTimeProgress(
@@ -127,56 +127,86 @@ export default async function AdminThesisListPage() {
                   <Link
                     key={thesis.id}
                     href={`/admin/thesis/${thesis.slug}`}
-                    className="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6"
+                    className="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 border border-gray-200"
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                          {thesis.title}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-2">{thesis.hypothesis}</p>
+                    <div className="mb-4">
+                      <div className="text-xs text-gray-500 uppercase mb-2 font-medium">
+                        {thesis.category.replace('_', ' ')}
                       </div>
-                      <div
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                          thesis.confidence_score
-                        )}`}
-                      >
-                        {thesis.confidence_score}% Confidence
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
+                        {thesis.title}
+                      </h3>
+
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Confidence:</span>
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                              thesis.confidence_score
+                            )}`}
+                          >
+                            {thesis.confidence_score}%
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Created:</span>
+                          <span className="text-gray-900">
+                            {new Date(thesis.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Decision:</span>
+                          <span className="text-gray-900">
+                            {new Date(thesis.prediction_end_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                        {thesis.category.replace('_', ' ').toUpperCase()}
-                      </span>
-                      {tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>
-                          {daysRemaining} days remaining ({timeProgress}%)
-                        </span>
+                    {tags.length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex flex-wrap gap-1">
+                          {tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {tags.length > 3 && (
+                            <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded">
+                              +{tags.length - 3}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div>Created: {new Date(thesis.created_at).toLocaleDateString()}</div>
-                    </div>
+                    )}
 
-                    {/* Progress bar */}
-                    <div className="mt-4">
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-gray-600">Time Progress:</span>
+                        <span className="font-semibold text-gray-900">{timeProgress}%</span>
+                      </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-blue-600 h-2 rounded-full transition-all"
                           style={{ width: `${timeProgress}%` }}
                         />
                       </div>
+                    </div>
+
+                    <div className="text-center text-sm text-gray-500 pt-2 border-t border-gray-100">
+                      <Clock className="w-4 h-4 inline mr-1" />
+                      {daysRemaining} days left
                     </div>
                   </Link>
                 );
@@ -193,59 +223,112 @@ export default async function AdminThesisListPage() {
               <p className="text-gray-600">No closed theses yet.</p>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {closedTheses.map((thesis) => {
                 const tags = JSON.parse(thesis.tags) as string[];
+                const displayScore = thesis.outcome_score || 0;
 
                 return (
                   <Link
                     key={thesis.id}
                     href={`/admin/thesis/${thesis.slug}`}
-                    className="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6"
+                    className="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 border border-gray-200"
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                          {thesis.title}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-2">{thesis.hypothesis}</p>
+                    <div className="mb-4">
+                      <div className="text-xs text-gray-500 uppercase mb-2 font-medium">
+                        {thesis.category.replace('_', ' ')}
                       </div>
-                      <div
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                          thesis.outcome_score || 0
-                        )}`}
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
+                        {thesis.title}
+                      </h3>
+
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Final Score:</span>
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                              displayScore
+                            )}`}
+                          >
+                            {displayScore}%
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Created:</span>
+                          <span className="text-gray-900">
+                            {new Date(thesis.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Closed:</span>
+                          <span className="text-gray-900">
+                            {thesis.closed_at
+                              ? new Date(thesis.closed_at).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })
+                              : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {tags.length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex flex-wrap gap-1">
+                          {tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {tags.length > 3 && (
+                            <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded">
+                              +{tags.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-gray-600">Final Score:</span>
+                        <span className="font-semibold text-gray-900">{displayScore}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            displayScore >= 70
+                              ? 'bg-green-500'
+                              : displayScore >= 40
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
+                          }`}
+                          style={{ width: `${displayScore}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-center text-sm pt-2 border-t border-gray-100">
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                          displayScore >= 70
+                            ? 'bg-green-100 text-green-800'
+                            : displayScore >= 40
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                        }`}
                       >
-                        {thesis.outcome_score}% Final Score
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                        {thesis.category.replace('_', ' ').toUpperCase()}
+                        {displayScore >= 70 ? '✓ Successful' : displayScore >= 40 ? '≈ Partial' : '✗ Failed'}
                       </span>
-                      {tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div>
-                        Closed: {thesis.closed_at ? new Date(thesis.closed_at).toLocaleDateString() : 'N/A'}
-                      </div>
-                      <div>
-                        Duration:{' '}
-                        {Math.ceil(
-                          (new Date(thesis.prediction_end_date).getTime() -
-                            new Date(thesis.prediction_start_date).getTime()) /
-                            (1000 * 60 * 60 * 24)
-                        )}{' '}
-                        days
-                      </div>
                     </div>
                   </Link>
                 );
