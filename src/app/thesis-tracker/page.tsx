@@ -131,7 +131,7 @@ export default async function ThesisTrackerPage({
               <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href="/thesis-tracker#filters"
+                  href={`/thesis-tracker${status ? `?status=${status}` : ''}#filters`}
                   scroll={false}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     !category
