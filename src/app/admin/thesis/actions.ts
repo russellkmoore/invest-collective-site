@@ -167,12 +167,10 @@ export async function getAllTheses(filters?: {
 
     query += ' ORDER BY created_at DESC';
 
-    const stmt = DB.prepare(query);
-    if (bindings.length > 0) {
-      bindings.forEach((binding) => stmt.bind(binding));
-    }
+    const result = bindings.length > 0
+      ? await DB.prepare(query).bind(...bindings).all<Thesis>()
+      : await DB.prepare(query).all<Thesis>();
 
-    const result = await stmt.all<Thesis>();
     return result.results || [];
   } catch (error) {
     console.error('Failed to fetch theses:', error);
