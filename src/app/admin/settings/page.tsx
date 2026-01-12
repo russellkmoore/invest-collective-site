@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ChevronLeft, Settings, Key, Bell, Database, Users, Mail, Palette } from 'lucide-react';
+import { ChevronLeft, Settings, Key, Bell, Database, Users, Mail, Palette, FileText } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -105,6 +105,26 @@ export default function SettingsPage() {
             <p className="text-gray-600 text-sm mb-4">Review member applications and manage member accounts.</p>
             <div className="flex items-center gap-2 text-sm text-indigo-600 group-hover:text-indigo-700">
               <span>Manage members</span>
+              <span>→</span>
+            </div>
+          </Link>
+
+          {/* Legal Pages */}
+          <Link
+            href="/admin/legal"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-gray-300 transition-all group"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-gray-100 p-3 rounded-full group-hover:bg-gray-200 transition-colors">
+                <FileText className="w-5 h-5 text-gray-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">Legal Pages</h3>
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              Edit Privacy Policy, Disclaimer, and other legal content displayed on the site.
+            </p>
+            <div className="flex items-center gap-2 text-sm text-gray-600 group-hover:text-gray-700">
+              <span>Edit legal pages</span>
               <span>→</span>
             </div>
           </Link>
