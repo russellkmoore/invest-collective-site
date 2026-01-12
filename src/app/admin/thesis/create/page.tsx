@@ -32,6 +32,10 @@ export default function CreateThesisPage() {
     event_date: new Date().toISOString().split('T')[0],
     prediction_start_date: new Date().toISOString().split('T')[0],
     prediction_end_date: '',
+    generation_method: 'manual',
+    ai_model: '',
+    ai_prompt_version: '',
+    source_headlines: '',
   });
 
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([
@@ -299,6 +303,97 @@ export default function CreateThesisPage() {
                   />
                   <p className="mt-2 text-sm text-gray-500">Separate multiple tags with commas</p>
                 </div>
+              </div>
+            </div>
+
+            {/* AI Tracking */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b border-gray-200">
+                AI Tracking (Optional)
+              </h2>
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="generation_method" className="block text-base font-medium text-gray-900 mb-2">
+                    Generation Method
+                  </label>
+                  <select
+                    id="generation_method"
+                    name="generation_method"
+                    value={formData.generation_method}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    <option value="manual">Manual (Human Created)</option>
+                    <option value="ai_assisted">AI-Assisted (Human + AI)</option>
+                    <option value="ai_generated">AI-Generated (Fully AI)</option>
+                  </select>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Track whether this thesis was created manually, with AI assistance, or fully AI-generated
+                  </p>
+                </div>
+
+                {(formData.generation_method === 'ai_assisted' || formData.generation_method === 'ai_generated') && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="ai_model" className="block text-base font-medium text-gray-900 mb-2">
+                          AI Model Used
+                        </label>
+                        <select
+                          id="ai_model"
+                          name="ai_model"
+                          value={formData.ai_model}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        >
+                          <option value="">Select Model...</option>
+                          <option value="claude-sonnet-4">Claude Sonnet 4</option>
+                          <option value="claude-opus-4">Claude Opus 4</option>
+                          <option value="gpt-4">GPT-4</option>
+                          <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                          <option value="gemini-pro">Gemini Pro</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor="ai_prompt_version" className="block text-base font-medium text-gray-900 mb-2">
+                          Prompt Version
+                        </label>
+                        <input
+                          type="text"
+                          id="ai_prompt_version"
+                          name="ai_prompt_version"
+                          value={formData.ai_prompt_version}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          placeholder="v1.0-2025-01"
+                        />
+                        <p className="mt-2 text-sm text-gray-500">
+                          Track which prompt version was used
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="source_headlines" className="block text-base font-medium text-gray-900 mb-2">
+                        Source Headlines (JSON Array)
+                      </label>
+                      <textarea
+                        id="source_headlines"
+                        name="source_headlines"
+                        rows={4}
+                        value={formData.source_headlines}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-mono text-sm"
+                        placeholder='["Fed cuts rates by 0.25%", "Tech stocks rally on earnings"]'
+                      />
+                      <p className="mt-2 text-sm text-gray-500">
+                        Enter headlines as a JSON array that inspired this thesis
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

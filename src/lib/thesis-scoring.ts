@@ -47,6 +47,10 @@ export interface Thesis {
   event_date: string;
   prediction_start_date: string;
   prediction_end_date: string;
+  generation_method?: string;
+  ai_model?: string;
+  ai_prompt_version?: string;
+  source_headlines?: string;
 }
 
 /**

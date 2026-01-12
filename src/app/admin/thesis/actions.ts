@@ -23,6 +23,10 @@ interface CreateThesisInput {
   event_date: string;
   prediction_start_date: string;
   prediction_end_date: string;
+  generation_method?: string;
+  ai_model?: string;
+  ai_prompt_version?: string;
+  source_headlines?: string;
   data_points: Array<{
     name: string;
     metric_type: string;
@@ -70,8 +74,9 @@ export async function createThesis(input: CreateThesisInput): Promise<{
       `INSERT INTO theses (
         slug, title, event_description, hypothesis, timeframe, rationale,
         category, subcategory, tags, status, confidence_score,
-        created_by, event_date, prediction_start_date, prediction_end_date
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, ?, ?)`
+        created_by, event_date, prediction_start_date, prediction_end_date,
+        generation_method, ai_model, ai_prompt_version, source_headlines
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         slug,
@@ -86,7 +91,11 @@ export async function createThesis(input: CreateThesisInput): Promise<{
         input.created_by,
         input.event_date,
         input.prediction_start_date,
-        input.prediction_end_date
+        input.prediction_end_date,
+        input.generation_method || 'manual',
+        input.ai_model || null,
+        input.ai_prompt_version || null,
+        input.source_headlines || null
       )
       .run();
 
