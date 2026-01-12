@@ -90,8 +90,20 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-          <p>&copy; 2026 The Invest Collective. All rights reserved.</p>
+        <div className="border-t border-gray-800 mt-8 pt-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-gray-400 text-sm">
+              &copy; 2026 The Invest Collective. All rights reserved.
+            </p>
+            <div className="flex gap-6 text-gray-400 text-sm">
+              <Link href="/privacy-policy" className="hover:text-white transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/disclaimer" className="hover:text-white transition-colors">
+                Disclaimer
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

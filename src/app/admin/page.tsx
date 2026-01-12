@@ -179,6 +179,13 @@ export default function AdminDashboard() {
               <FileText className="w-5 h-5 text-blue-600" />
               <span className="font-medium text-gray-900">View Public Research</span>
             </Link>
+            <Link
+              href="/admin/legal"
+              className="flex items-center gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+            >
+              <FileText className="w-5 h-5 text-gray-600" />
+              <span className="font-medium text-gray-900">Legal Pages</span>
+            </Link>
           </div>
         </div>
 
