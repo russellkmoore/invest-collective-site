@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { ChevronLeft } from 'lucide-react';
 import { saveApplication } from './actions';
 
@@ -58,7 +59,7 @@ export default function SignupPage() {
         // This is best-effort - don't fail the submission if email fails
         try {
           const emailPayload = {
-            access_key: process.env.NEXT_PUBLIC_WEB3FORMS_KEY || '646715cb-7883-4f01-b624-002d1cee543f',
+            access_key: process.env.NEXT_PUBLIC_WEB3FORMS_KEY,
             subject: 'New Invest Collective Application',
             from_name: formData.name,
             name: formData.name,
@@ -129,6 +130,8 @@ export default function SignupPage() {
   };
 
   return (
+    <>
+      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
     <div className="min-h-screen bg-gray-50 py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
@@ -405,6 +408,14 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* Turnstile Bot Protection */}
+            <div className="pt-2">
+              <div
+                className="cf-turnstile"
+                data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              />
+            </div>
+
             {/* Submit Button */}
             <div className="pt-6 border-t border-gray-200">
               <button
@@ -433,5 +444,6 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

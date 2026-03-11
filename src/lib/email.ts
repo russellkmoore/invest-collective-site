@@ -48,8 +48,13 @@ ${application.expectations}
 Referral Source: ${application.referral_source || 'Not specified'}
     `.trim();
 
+    const accessKey = process.env.WEB3FORMS_ACCESS_KEY;
+    if (!accessKey) {
+      throw new Error('WEB3FORMS_ACCESS_KEY environment variable is not set');
+    }
+
     const payload = {
-      access_key: '646715cb-7883-4f01-b624-002d1cee543f', // Web3Forms public key
+      access_key: accessKey,
       subject: 'New Invest Collective Application',
       from_name: application.name,
       name: application.name,

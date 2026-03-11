@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import { ChevronLeft, Mail, MessageCircle } from 'lucide-react';
 
 export default function ContactPage() {
@@ -28,16 +29,20 @@ export default function ContactPage() {
     setSubmitStatus('idle');
 
     try {
+      // Note: Turnstile widget adds cf-turnstile-response field automatically.
+      // The widget token is included in the form body sent to Web3Forms.
+      // For full server-side Turnstile validation, move to a server action.
+
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          access_key: process.env.NEXT_PUBLIC_WEB3FORMS_KEY || '646715cb-7883-4f01-b624-002d1cee543f',
-          subject: `Contact Form: ${formData.subject}`,
+          access_key: process.env.NEXT_PUBLIC_WEB3FORMS_KEY,
           from_name: formData.name,
           ...formData,
+          subject: `Contact Form: ${formData.subject}`,
         }),
       });
 
@@ -60,6 +65,8 @@ export default function ContactPage() {
   };
 
   return (
+    <>
+      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
     <div className="min-h-screen bg-gray-50 py-24">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
@@ -177,6 +184,14 @@ export default function ContactPage() {
               />
             </div>
 
+            {/* Turnstile Bot Protection */}
+            <div>
+              <div
+                className="cf-turnstile"
+                data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+              />
+            </div>
+
             {/* Submit Button */}
             <div className="pt-4">
               <button
@@ -208,5 +223,6 @@ export default function ContactPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

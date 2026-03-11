@@ -2,6 +2,7 @@
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { generateSlug } from '@/lib/slug';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 export async function uploadResearchArticle(formData: FormData) {
   try {
@@ -31,7 +32,7 @@ export async function uploadResearchArticle(formData: FormData) {
       },
     });
 
-    const pdfUrl = `/api/research/pdf/${pdfFilename}`;
+    const pdfUrl = `/api/v1/research/pdf/${pdfFilename}`;
 
     // Process PDF with Cloudflare Workers AI
     // Note: Workers AI doesn't directly extract text from PDFs yet,
@@ -65,8 +66,8 @@ Return ONLY the HTML content (no <html>, <head>, or <body> tags - just the artic
       ],
     });
 
-    // Extract AI response
-    const htmlContent =
+    // Extract AI response and sanitize before storage (XSS prevention)
+    const rawHtmlContent =
       (aiResponse as any)?.response ||
       `<article>
         <h2>Introduction</h2>
@@ -76,6 +77,8 @@ Return ONLY the HTML content (no <html>, <head>, or <body> tags - just the artic
         <h2>Conclusion</h2>
         <p>This research provides valuable insights into ${topicsArray.join(', ')}. Access the full presentation for comprehensive details.</p>
       </article>`;
+
+    const htmlContent = sanitizeHtml(rawHtmlContent);
 
     // Store article in D1 as draft
     await DB.prepare(

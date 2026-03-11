@@ -8,6 +8,27 @@ export async function saveApplication(formData: FormData) {
     const { env } = getCloudflareContext();
     const { DB } = env;
 
+    // Validate Turnstile bot protection token (soft-fail if secret not configured in dev)
+    const turnstileToken = formData.get('cf-turnstile-response') as string | null;
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+    if (turnstileSecret) {
+      if (!turnstileToken) {
+        return { success: false, error: 'Bot verification required. Please complete the challenge.' };
+      }
+      const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: turnstileSecret,
+          response: turnstileToken,
+        }),
+      });
+      const result = await verifyResponse.json() as { success: boolean };
+      if (!result.success) {
+        return { success: false, error: 'Bot verification failed. Please try again.' };
+      }
+    }
+
     // Extract all form fields
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
