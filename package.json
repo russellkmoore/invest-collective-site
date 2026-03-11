@@ -10,7 +10,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "preview": "npm run build && opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "predeploy": "cp wrangler.jsonc.template wrangler.jsonc",
-    "deploy": "npm run build && opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "deploy": "npm run build && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "generate:openapi": "npx tsx scripts/generate-openapi.ts"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.4.3",
@@ -74,6 +75,7 @@
     "eslint": "^9",
     "eslint-config-next": "^15.5.9",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "wrangler": "^4.54.0"
   }

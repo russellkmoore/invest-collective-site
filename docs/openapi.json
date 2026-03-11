@@ -1,0 +1,1017 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "InvestCollective API",
+    "version": "1.0.0",
+    "description": "REST API for InvestCollective investment analysis platform"
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Production"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key obtained from the admin panel at /admin/api-keys"
+      }
+    },
+    "schemas": {
+      "ThesisListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "hypothesis": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "confidence_score": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "hypothesis",
+          "category",
+          "status",
+          "confidence_score",
+          "created_at"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "error"
+        ]
+      },
+      "CreateThesisRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "hypothesis": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timeframe": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "human",
+              "ai",
+              "hybrid"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "key_arguments": {
+            "type": "string"
+          },
+          "contrarian_view": {
+            "type": "string"
+          },
+          "data_points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPoint"
+            },
+            "minItems": 2,
+            "maxItems": 8
+          }
+        },
+        "required": [
+          "title",
+          "hypothesis",
+          "category",
+          "timeframe",
+          "source",
+          "data_points"
+        ]
+      },
+      "DataPoint": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metric_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data_source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data_source_identifier": {
+            "type": "string"
+          },
+          "target_value": {
+            "type": "number"
+          },
+          "target_direction": {
+            "type": "string",
+            "enum": [
+              "above",
+              "below",
+              "between",
+              "equals"
+            ]
+          },
+          "threshold_low": {
+            "type": "number"
+          },
+          "threshold_high": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 1
+          }
+        },
+        "required": [
+          "name",
+          "metric_type",
+          "data_source",
+          "target_value",
+          "target_direction"
+        ]
+      },
+      "UpdateDataPointRequest": {
+        "type": "object",
+        "properties": {
+          "data_point_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "value": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data_point_id",
+          "value"
+        ]
+      },
+      "ArticleListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "date",
+          "topics",
+          "summary",
+          "status",
+          "created_at"
+        ]
+      },
+      "CreateArticleRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "minLength": 1
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ],
+            "default": "draft"
+          }
+        },
+        "required": [
+          "title",
+          "date",
+          "topics",
+          "summary"
+        ]
+      },
+      "MemberListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "status",
+          "created_at"
+        ]
+      },
+      "CreateApiKeyRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "label"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/theses": {
+      "get": {
+        "summary": "List all investment theses",
+        "tags": [
+          "Theses"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "closed",
+                "invalidated"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "stocks",
+                "fed_policy",
+                "sector",
+                "macro"
+              ]
+            },
+            "required": false,
+            "name": "category",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of theses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ThesisListItem"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new investment thesis",
+        "tags": [
+          "Theses"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateThesisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Thesis created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "slug": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Slug conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/theses/{slug}": {
+      "get": {
+        "summary": "Get a single thesis with data points and update history",
+        "tags": [
+          "Theses"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thesis detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "thesis": {
+                          "$ref": "#/components/schemas/ThesisListItem"
+                        },
+                        "dataPoints": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "updates": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "update_type": {
+                                "type": "string"
+                              },
+                              "content": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "update_type",
+                              "content"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        }
+                      },
+                      "required": [
+                        "thesis",
+                        "dataPoints",
+                        "updates"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/theses/{slug}/data-points": {
+      "put": {
+        "summary": "Update a data point current value and recalculate confidence score",
+        "tags": [
+          "Theses"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDataPointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Data point updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "confidence_score": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "confidence_score"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Data point not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/research": {
+      "get": {
+        "summary": "List published research articles",
+        "tags": [
+          "Research"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "topic",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of published articles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ArticleListItem"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new research article record",
+        "tags": [
+          "Research"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateArticleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Article created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "slug": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/research/{slug}": {
+      "get": {
+        "summary": "Get a single research article with full content",
+        "tags": [
+          "Research"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ArticleListItem"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/members": {
+      "get": {
+        "summary": "List all members (admin)",
+        "tags": [
+          "Members"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "active"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MemberListItem"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys": {
+      "post": {
+        "summary": "Create a new API key",
+        "tags": [
+          "API Keys"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created (key shown once only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "key": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "key",
+                        "label"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
