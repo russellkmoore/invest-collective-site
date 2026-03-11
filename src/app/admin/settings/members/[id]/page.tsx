@@ -45,7 +45,7 @@ export default function MemberDetailPage() {
   useEffect(() => {
     if (!id) return;
 
-    fetch(`/api/members/${id}`)
+    fetch(`/api/v1/members/${id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -107,7 +107,7 @@ export default function MemberDetailPage() {
 
     if (result.success) {
       // Refresh member data
-      const response = await fetch(`/api/members/${id}`);
+      const response = await fetch(`/api/v1/members/${id}`);
       const data = await response.json();
       if (data.success) {
         setMember(data.member);

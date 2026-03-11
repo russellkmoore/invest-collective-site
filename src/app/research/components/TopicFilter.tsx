@@ -18,7 +18,7 @@ export function TopicFilter({ allTopics }: TopicFilterProps) {
       router.push('/research');
     } else {
       // Track topic filter usage
-      fetch('/api/analytics/track', {
+      fetch('/api/v1/analytics/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event_type: 'topic_filter', topic }),

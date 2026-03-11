@@ -75,7 +75,7 @@ export default async function MembersPage() {
               <p className="text-gray-600 mt-2">Review applications and manage member accounts</p>
             </div>
             <Link
-              href="/api/members/export"
+              href="/api/v1/members/export"
               className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               <Download className="w-5 h-5" />

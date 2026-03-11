@@ -41,7 +41,7 @@ export default function EditArticlePage({ params }: { params: { slug: string } }
   useEffect(() => {
     async function fetchArticle() {
       try {
-        const response = await fetch(`/api/research/article/${params.slug}`);
+        const response = await fetch(`/api/v1/research/${params.slug}`);
         if (!response.ok) throw new Error('Article not found');
 
         const data = await response.json();

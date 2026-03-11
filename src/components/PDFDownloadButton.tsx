@@ -12,7 +12,7 @@ interface PDFDownloadButtonProps {
 export function PDFDownloadButton({ pdfUrl, articleSlug, className, size = 'large' }: PDFDownloadButtonProps) {
   const handleDownload = () => {
     // Track the PDF download event
-    fetch('/api/analytics/track', {
+    fetch('/api/v1/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
