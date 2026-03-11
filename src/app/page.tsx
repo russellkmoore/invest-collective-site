@@ -4,21 +4,27 @@ import Link from 'next/link';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { TrendingUp, Users, Calendar, ChartLine, Lightbulb, MessageCircle } from 'lucide-react';
 
+const TESTIMONIALS = [
+  { quote: '{REAL_QUOTE_1}', name: '{REAL_NAME_1}', tenure: 'Member since {YEAR}' },
+  { quote: '{REAL_QUOTE_2}', name: '{REAL_NAME_2}', tenure: 'Member since {YEAR}' },
+  { quote: '{REAL_QUOTE_3}', name: '{REAL_NAME_3}', tenure: 'Member since {YEAR}' },
+] as const;
+
 export default function Page() {
   return (
     <div className="bg-white">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-24">
+          <div className="grid md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-              <h1 className="text-5xl font-bold text-gray-900 mb-6">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
                 Grow Your Wealth Together
               </h1>
-              <p className="text-xl text-gray-600 mb-8">
+              <p className="text-lg sm:text-xl text-gray-600 mb-8">
                 Join our community of passionate investors who meet weekly to share insights, discuss strategies, and navigate the markets together.
               </p>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/signup" className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center justify-center">
                   Join Our Group
                 </Link>
@@ -26,10 +32,9 @@ export default function Page() {
                   Learn More
                 </a>
               </div>
-              <div className="mt-12 flex gap-8">
+              <div className="mt-12 flex flex-wrap gap-4 sm:gap-8">
                 <div>
-                  <div className="text-3xl font-bold text-blue-600">Meeting Weekly for over 4 years.</div>
-                  <div className="text-gray-600">Established 2002</div>
+                  <div className="text-xl sm:text-3xl font-bold text-blue-600">{'{MEMBER_COUNT}'} members meeting weekly since {'{FOUNDING_YEAR}'}</div>
                 </div>
               </div>
             </div>
@@ -49,7 +54,7 @@ export default function Page() {
       <section id="about" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">About Our Group</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">About Our Group</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               We&apos;re a dedicated community of traders and investors who believe that collaboration and shared knowledge lead to better investment decisions.
             </p>
@@ -65,7 +70,7 @@ export default function Page() {
             <div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Our Mission</h3>
               <p className="text-gray-600 mb-6">
-                When interpreting financial markets, isolated thoughts are the enemy of clarity We empower individual investors to make better investment decisions via peer collaboration, continuing and shared market insights. Our weekly meetings provide a structured environment to discuss market trends, analyze opportunities, and learn from each other&apos;s experiences.
+                When interpreting financial markets, isolated thoughts are the enemy of clarity. We empower individual investors to make better investment decisions via peer collaboration, continuing and shared market insights. Our weekly meetings provide a structured environment to discuss market trends, analyze opportunities, and learn from each other&apos;s experiences.
               </p>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">What We Do</h3>
               <ul className="space-y-3 text-gray-600">
@@ -103,12 +108,12 @@ export default function Page() {
       <section id="benefits" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Join Us?</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Why Join Us?</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Discover the advantages of being part of an active investing community
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
             <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
                 <Users className="w-6 h-6 text-blue-600" />
@@ -172,7 +177,7 @@ export default function Page() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">Weekly Meetings</h2>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">Weekly Meetings</h2>
               <p className="text-xl text-gray-600 mb-8">
                 Every week, we gather to discuss market movements, share investment ideas, and learn together. Our structured format ensures productive and insightful sessions.
               </p>
@@ -230,60 +235,30 @@ export default function Page() {
       <section className="py-20 bg-gradient-to-br from-blue-600 to-indigo-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">What Our Members Say</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">What Our Members Say</h2>
             <p className="text-xl text-blue-100">
               Hear from investors who&apos;ve grown their skills with us
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-xl">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                  </svg>
-                ))}
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="bg-white p-8 rounded-xl">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-4">
+                  {t.quote}
+                </p>
+                <div>
+                  <div className="font-bold text-gray-900">{t.name}</div>
+                  <div className="text-gray-500 text-sm">{t.tenure}</div>
+                </div>
               </div>
-              <p className="text-gray-600 mb-4">
-                This group has transformed my approach to investing. The weekly discussions keep me informed and accountable. Best investment I&apos;ve made!
-              </p>
-              <div>
-                <div className="font-bold text-gray-900">Sarah Chen</div>
-                <div className="text-gray-500 text-sm">Member since 2022</div>
-              </div>
-            </div>
-            <div className="bg-white p-8 rounded-xl">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                  </svg>
-                ))}
-              </div>
-              <p className="text-gray-600 mb-4">
-                The diversity of perspectives here is incredible. I&apos;ve learned strategies I never would have discovered on my own. Highly recommend!
-              </p>
-              <div>
-                <div className="font-bold text-gray-900">Michael Rodriguez</div>
-                <div className="text-gray-500 text-sm">Member since 2021</div>
-              </div>
-            </div>
-            <div className="bg-white p-8 rounded-xl">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                  </svg>
-                ))}
-              </div>
-              <p className="text-gray-600 mb-4">
-                As a beginner, I was nervous to join, but everyone was so welcoming. I&apos;ve grown my portfolio and my confidence significantly.
-              </p>
-              <div>
-                <div className="font-bold text-gray-900">Emily Thompson</div>
-                <div className="text-gray-500 text-sm">Member since 2023</div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -291,7 +266,7 @@ export default function Page() {
       {/* CTA Section */}
       <section id="join" className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold text-gray-900 mb-6">Ready to Join Our Community?</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">Ready to Join Our Community?</h2>
           <p className="text-xl text-gray-600 mb-8">
             Take the next step in your investing journey. Connect with experienced traders and grow your wealth through collaborative learning.
           </p>
@@ -301,7 +276,7 @@ export default function Page() {
             </Link>
           </div>
           <p className="text-gray-500 mt-6">
-            No credit card required • Cancel anytime • First session is free
+            Currently free to join — get in on the ground floor before membership becomes paid
           </p>
         </div>
       </section>
