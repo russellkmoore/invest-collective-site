@@ -163,16 +163,9 @@ export function calculateTimeProgress(startDate: string, endDate: string): numbe
   return Math.max(0, Math.min(100, Math.round(progress)));
 }
 
-/**
- * Generate URL-friendly slug from title
- */
-export function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .substring(0, 100);
-}
+// Re-export from shared slug utility — preserved for backward compatibility
+// with existing imports of generateSlug from this module.
+export { generateSlug } from './slug';
 
 /**
  * Validate prediction window (30 days to 365 days)
