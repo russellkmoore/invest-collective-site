@@ -1,52 +1,62 @@
 'use server';
 
 import { eq, sql } from 'drizzle-orm';
+import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { getDb } from '@/lib/db';
 import { getAuthInfo } from '@/lib/auth';
 import { members } from '../../../../../drizzle/schema';
 
+/** Full member profile update schema (admin edits to existing member records). */
+const updateMemberProfileSchema = z.object({
+  id: z.coerce.number().int().positive('Member ID is required'),
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Valid email is required'),
+  phone: z.string().min(1, 'Phone is required'),
+  years_investing: z.string().min(1),
+  trading_style: z.string().min(1),
+  areas_of_expertise: z.string().min(1),
+  macro_knowledge: z.string().min(1),
+  portfolio_size: z.string().min(1),
+  investment_journey: z.string().min(1),
+  expectations: z.string().min(1),
+  referral_source: z.string().optional(),
+});
+
 /**
  * Update an existing member's profile information.
- * Validates that required fields (id, name, email) are present before updating.
+ * Validates all form fields with Zod before applying the update.
  */
 export async function updateMember(formData: FormData) {
   try {
     const db = getDb();
 
-    const idRaw = formData.get('id');
-    const id = idRaw ? parseInt(idRaw as string, 10) : NaN;
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
+    const parsed = updateMemberProfileSchema.safeParse({
+      id: formData.get('id'),
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      years_investing: formData.get('years_investing'),
+      trading_style: formData.get('trading_style'),
+      areas_of_expertise: formData.get('areas_of_expertise'),
+      macro_knowledge: formData.get('macro_knowledge'),
+      portfolio_size: formData.get('portfolio_size'),
+      investment_journey: formData.get('investment_journey'),
+      expectations: formData.get('expectations'),
+      referral_source: formData.get('referral_source'),
+    });
 
-    if (!id || isNaN(id) || !name || !email) {
-      return { success: false, error: 'Missing required fields' };
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
     }
 
-    const phone = formData.get('phone') as string;
-    const years_investing = formData.get('years_investing') as string;
-    const trading_style = formData.get('trading_style') as string;
-    const areas_of_expertise = formData.get('areas_of_expertise') as string;
-    const macro_knowledge = formData.get('macro_knowledge') as string;
-    const portfolio_size = formData.get('portfolio_size') as string;
-    const investment_journey = formData.get('investment_journey') as string;
-    const expectations = formData.get('expectations') as string;
-    const referral_source = formData.get('referral_source') as string;
+    const { id, referral_source, ...fields } = parsed.data;
 
     await db
       .update(members)
       .set({
-        name,
-        email,
-        phone,
-        years_investing,
-        trading_style,
-        areas_of_expertise,
-        macro_knowledge,
-        portfolio_size,
-        investment_journey,
-        expectations,
-        referral_source: referral_source || null,
+        ...fields,
+        referral_source: referral_source ?? null,
         updated_at: sql`datetime('now')`,
       })
       .where(eq(members.id, id));

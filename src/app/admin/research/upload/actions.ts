@@ -1,10 +1,19 @@
 'use server';
 
+import { z } from 'zod';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getDb } from '@/lib/db';
 import { articles } from '../../../../../drizzle/schema';
 import { generateSlug } from '@/lib/slug';
 import { sanitizeHtml } from '@/lib/sanitize';
+
+/** Schema for research article upload form fields (excludes the PDF file itself). */
+const uploadArticleSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  date: z.string().min(1, 'Date is required'),
+  topics: z.string().min(1, 'Topics are required'),
+  summary: z.string().min(1, 'Summary is required'),
+});
 
 /**
  * Upload a PDF research article: stores the file in R2, generates HTML content via Workers AI,
@@ -17,16 +26,24 @@ export async function uploadResearchArticle(formData: FormData) {
     const { RESEARCH_PDFS, AI } = env;
     const db = getDb();
 
-    // Extract form data
-    const pdfFile = formData.get('pdf') as File;
-    const title = formData.get('title') as string;
-    const date = formData.get('date') as string;
-    const topics = formData.get('topics') as string;
-    const summary = formData.get('summary') as string;
+    // Validate text fields with Zod
+    const parsed = uploadArticleSchema.safeParse({
+      title: formData.get('title'),
+      date: formData.get('date'),
+      topics: formData.get('topics'),
+      summary: formData.get('summary'),
+    });
 
-    if (!pdfFile || !title || !date || !topics || !summary) {
-      return { success: false, error: 'Missing required fields' };
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Missing required fields' };
     }
+
+    const pdfFile = formData.get('pdf');
+    if (!pdfFile || !(pdfFile instanceof File)) {
+      return { success: false, error: 'PDF file is required' };
+    }
+
+    const { title, date, topics, summary } = parsed.data;
 
     // Generate slug from title
     const slug = generateSlug(title);
