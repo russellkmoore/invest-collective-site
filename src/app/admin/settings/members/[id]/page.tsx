@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Save, Trash2, CheckCircle, XCircle, Clock, UserCheck } from 'lucide-react';
-import { updateMember, updateMemberStatus, addMemberNote, deleteMember } from '../actions';
+import { ChevronLeft, Save, Trash2, CheckCircle, XCircle, Clock, UserCheck, Mail } from 'lucide-react';
+import { updateMember, updateMemberStatus, addMemberNote, deleteMember, sendWelcomeEmail } from '../actions';
 
 interface Member {
   id: number;
@@ -37,6 +37,7 @@ export default function MemberDetailPage() {
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newNote, setNewNote] = useState('');
@@ -132,6 +133,22 @@ export default function MemberDetailPage() {
       setMessage({ type: 'error', text: result.error || 'Failed to delete member' });
       setShowDeleteModal(false);
     }
+  };
+
+  const handleSendWelcomeEmail = async () => {
+    if (!member) return;
+    setSendingEmail(true);
+    setMessage(null);
+
+    const result = await sendWelcomeEmail(member.id);
+
+    if (result.success) {
+      setMessage({ type: 'success', text: result.message || 'Welcome email sent!' });
+    } else {
+      setMessage({ type: 'error', text: result.error || 'Failed to send welcome email' });
+    }
+
+    setSendingEmail(false);
   };
 
   if (loading) {
@@ -249,6 +266,16 @@ export default function MemberDetailPage() {
                 <UserCheck className="w-5 h-5" />
                 Active Member
               </p>
+            )}
+            {(member.status === 'approved' || member.status === 'active') && (
+              <button
+                onClick={handleSendWelcomeEmail}
+                disabled={sendingEmail}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
+              >
+                <Mail className="w-4 h-4" />
+                {sendingEmail ? 'Sending...' : 'Send Welcome Email'}
+              </button>
             )}
           </div>
         </div>
