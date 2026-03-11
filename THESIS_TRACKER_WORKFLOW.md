@@ -42,17 +42,6 @@ interface Thesis {
 }
 ```
 
-### Proposed Schema Additions
-
-To support AI-generated theses and better tracking:
-
-```sql
-ALTER TABLE theses ADD COLUMN generation_method TEXT DEFAULT 'manual' CHECK(generation_method IN ('manual', 'ai_assisted', 'ai_generated'));
-ALTER TABLE theses ADD COLUMN ai_model TEXT; -- e.g., 'claude-sonnet-4', 'gpt-4', 'claude-opus-4'
-ALTER TABLE theses ADD COLUMN ai_prompt_version TEXT; -- Track which prompt version was used
-ALTER TABLE theses ADD COLUMN source_headlines TEXT; -- JSON array of headlines that inspired this
-```
-
 ### 1.1 AI-Assisted Thesis Generation
 
 **Frequency**: Weekly (recommended) or ad-hoc
