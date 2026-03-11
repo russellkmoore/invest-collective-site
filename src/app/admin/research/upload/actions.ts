@@ -1,13 +1,21 @@
 'use server';
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
+import { articles } from '../../../../../drizzle/schema';
 import { generateSlug } from '@/lib/slug';
 import { sanitizeHtml } from '@/lib/sanitize';
 
+/**
+ * Upload a PDF research article: stores the file in R2, generates HTML content via Workers AI,
+ * sanitizes the AI output, and saves the article as a draft in D1 via Drizzle.
+ * R2 and AI still use getCloudflareContext() directly — only DB access uses Drizzle.
+ */
 export async function uploadResearchArticle(formData: FormData) {
   try {
     const { env } = getCloudflareContext();
-    const { RESEARCH_PDFS, DB, AI } = env;
+    const { RESEARCH_PDFS, AI } = env;
+    const db = getDb();
 
     // Extract form data
     const pdfFile = formData.get('pdf') as File;
@@ -80,22 +88,18 @@ Return ONLY the HTML content (no <html>, <head>, or <body> tags - just the artic
 
     const htmlContent = sanitizeHtml(rawHtmlContent);
 
-    // Store article in D1 as draft
-    await DB.prepare(
-      `INSERT INTO articles (slug, title, date, topics, summary, html_content, pdf_url, pdf_filename, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
-    )
-      .bind(
-        slug,
-        title,
-        date,
-        JSON.stringify(topicsArray),
-        summary,
-        htmlContent,
-        pdfUrl,
-        pdfFilename,
-      )
-      .run();
+    // Store article in D1 as draft via Drizzle
+    await db.insert(articles).values({
+      slug,
+      title,
+      date,
+      topics: JSON.stringify(topicsArray),
+      summary,
+      html_content: htmlContent,
+      pdf_url: pdfUrl,
+      pdf_filename: pdfFilename,
+      status: 'draft',
+    });
 
     return {
       success: true,

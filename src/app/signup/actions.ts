@@ -1,13 +1,19 @@
 'use server';
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
+import { members } from '../../../drizzle/schema';
+import { signupSchema } from '@/lib/validation-schemas';
 import { sendNewApplicationNotification } from '@/lib/email';
 
+/**
+ * Process a new member signup application.
+ * Validates the Cloudflare Turnstile token (soft-fail when key not configured in dev),
+ * validates all form fields with Zod signupSchema, then inserts into D1 via Drizzle.
+ * Sends an admin notification email on success (best-effort; failure doesn't block save).
+ */
 export async function saveApplication(formData: FormData) {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
-
     // Validate Turnstile bot protection token (soft-fail if secret not configured in dev)
     const turnstileToken = formData.get('cf-turnstile-response') as string | null;
     const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
@@ -29,73 +35,55 @@ export async function saveApplication(formData: FormData) {
       }
     }
 
-    // Extract all form fields
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const phone = formData.get('phone') as string;
-    const years_investing = formData.get('yearsInvesting') as string;
-    const trading_style = formData.get('tradingStyle') as string;
-    const areas_of_expertise = formData.get('areasOfExpertise') as string;
-    const macro_knowledge = formData.get('macroKnowledge') as string;
-    const portfolio_size = formData.get('portfolioSize') as string;
-    const investment_journey = formData.get('investmentJourney') as string;
-    const expectations = formData.get('expectations') as string;
-    const referral_source = formData.get('referralSource') as string;
+    // Parse and validate all form fields with Zod
+    const rawData = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      years_investing: formData.get('yearsInvesting'),
+      trading_style: formData.get('tradingStyle'),
+      areas_of_expertise: formData.get('areasOfExpertise'),
+      macro_knowledge: formData.get('macroKnowledge'),
+      portfolio_size: formData.get('portfolioSize'),
+      investment_journey: formData.get('investmentJourney'),
+      expectations: formData.get('expectations'),
+      referral_source: formData.get('referralSource'),
+      // Supply a dummy value to satisfy the schema; Turnstile already validated above
+      turnstile_token: turnstileToken ?? 'server-validated',
+    };
 
-    // Validate required fields
-    if (
-      !name ||
-      !email ||
-      !phone ||
-      !years_investing ||
-      !trading_style ||
-      !areas_of_expertise ||
-      !macro_knowledge ||
-      !portfolio_size ||
-      !investment_journey ||
-      !expectations
-    ) {
+    const parsed = signupSchema.safeParse(rawData);
+    if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0];
       return {
         success: false,
-        error: 'Please fill in all required fields',
+        error: firstIssue?.message ?? 'Please fill in all required fields',
       };
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return {
-        success: false,
-        error: 'Please enter a valid email address',
-      };
-    }
+    const data = parsed.data;
+    const db = getDb();
 
     // Insert into database
     try {
-      await DB.prepare(
-        `INSERT INTO members (
-          name, email, phone, years_investing, trading_style,
-          areas_of_expertise, macro_knowledge, portfolio_size,
-          investment_journey, expectations, referral_source, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      )
-        .bind(
-          name,
-          email,
-          phone,
-          years_investing,
-          trading_style,
-          areas_of_expertise,
-          macro_knowledge,
-          portfolio_size,
-          investment_journey,
-          expectations,
-          referral_source || null,
-        )
-        .run();
-    } catch (dbError: any) {
+      await db.insert(members).values({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        years_investing: data.years_investing,
+        trading_style: data.trading_style,
+        areas_of_expertise: data.areas_of_expertise,
+        macro_knowledge: data.macro_knowledge,
+        portfolio_size: data.portfolio_size,
+        investment_journey: data.investment_journey,
+        expectations: data.expectations,
+        referral_source: data.referral_source ?? null,
+        status: 'pending',
+      });
+    } catch (dbError: unknown) {
       // Check for unique constraint violation (duplicate email)
-      if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
+      const msg = dbError instanceof Error ? dbError.message : '';
+      if (msg.includes('UNIQUE constraint failed')) {
         return {
           success: false,
           error: 'An application with this email address already exists',
@@ -107,17 +95,17 @@ export async function saveApplication(formData: FormData) {
     // Send email notification to admin (best effort - don't fail if this fails)
     console.log('[SIGNUP] About to send email notification');
     const emailResult = await sendNewApplicationNotification({
-      name,
-      email,
-      phone,
-      years_investing,
-      trading_style,
-      areas_of_expertise,
-      macro_knowledge,
-      portfolio_size,
-      investment_journey,
-      expectations,
-      referral_source: referral_source || undefined,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      years_investing: data.years_investing,
+      trading_style: data.trading_style,
+      areas_of_expertise: data.areas_of_expertise,
+      macro_knowledge: data.macro_knowledge,
+      portfolio_size: data.portfolio_size,
+      investment_journey: data.investment_journey,
+      expectations: data.expectations,
+      referral_source: data.referral_source ?? undefined,
     });
 
     console.log('[SIGNUP] Email result:', emailResult);

@@ -1,7 +1,9 @@
 'use server';
 
+import { asc, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
+import { legalPages } from '../../../../drizzle/schema';
 
 export interface LegalPage {
   id: number;
@@ -14,18 +16,19 @@ export interface LegalPage {
 }
 
 /**
- * Get all legal pages
+ * Get all legal pages ordered alphabetically by slug.
+ * Used to populate the legal pages admin list.
  */
 export async function getAllLegalPages(): Promise<LegalPage[]> {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
+    const db = getDb();
 
-    const result = await DB.prepare(
-      'SELECT * FROM legal_pages ORDER BY slug ASC'
-    ).all<LegalPage>();
+    const results = await db
+      .select()
+      .from(legalPages)
+      .orderBy(asc(legalPages.slug));
 
-    return result.results || [];
+    return results as LegalPage[];
   } catch (error) {
     console.error('Failed to fetch legal pages:', error);
     return [];
@@ -33,18 +36,20 @@ export async function getAllLegalPages(): Promise<LegalPage[]> {
 }
 
 /**
- * Get a legal page by slug
+ * Get a single legal page by its URL slug.
+ * Returns null if the page does not exist.
  */
 export async function getLegalPageBySlug(slug: string): Promise<LegalPage | null> {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
+    const db = getDb();
 
-    const result = await DB.prepare(
-      'SELECT * FROM legal_pages WHERE slug = ?'
-    ).bind(slug).first<LegalPage>();
+    const result = await db
+      .select()
+      .from(legalPages)
+      .where(eq(legalPages.slug, slug))
+      .get();
 
-    return result || null;
+    return (result as LegalPage) ?? null;
   } catch (error) {
     console.error('Failed to fetch legal page:', error);
     return null;
@@ -52,7 +57,8 @@ export async function getLegalPageBySlug(slug: string): Promise<LegalPage | null
 }
 
 /**
- * Update a legal page
+ * Update the content of an existing legal page identified by slug.
+ * Records last_updated_by and refreshes the updated_at timestamp.
  */
 export async function updateLegalPage(
   slug: string,
@@ -61,14 +67,17 @@ export async function updateLegalPage(
   updatedBy: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
+    const db = getDb();
 
-    await DB.prepare(
-      `UPDATE legal_pages
-       SET title = ?, content = ?, last_updated_by = ?, updated_at = datetime('now')
-       WHERE slug = ?`
-    ).bind(title, content, updatedBy, slug).run();
+    await db
+      .update(legalPages)
+      .set({
+        title,
+        content,
+        last_updated_by: updatedBy,
+        updated_at: sql`datetime('now')`,
+      })
+      .where(eq(legalPages.slug, slug));
 
     revalidatePath('/admin/legal');
     revalidatePath(`/${slug}`);

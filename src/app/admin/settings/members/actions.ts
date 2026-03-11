@@ -1,19 +1,28 @@
 'use server';
 
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { getDb } from '@/lib/db';
+import { getAuthInfo } from '@/lib/auth';
+import { members } from '../../../../../drizzle/schema';
 
 /**
- * Update member details
+ * Update an existing member's profile information.
+ * Validates that required fields (id, name, email) are present before updating.
  */
 export async function updateMember(formData: FormData) {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
+    const db = getDb();
 
-    const id = parseInt(formData.get('id') as string);
+    const idRaw = formData.get('id');
+    const id = idRaw ? parseInt(idRaw as string, 10) : NaN;
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
+
+    if (!id || isNaN(id) || !name || !email) {
+      return { success: false, error: 'Missing required fields' };
+    }
+
     const phone = formData.get('phone') as string;
     const years_investing = formData.get('years_investing') as string;
     const trading_style = formData.get('trading_style') as string;
@@ -24,27 +33,9 @@ export async function updateMember(formData: FormData) {
     const expectations = formData.get('expectations') as string;
     const referral_source = formData.get('referral_source') as string;
 
-    if (!id || !name || !email) {
-      return { success: false, error: 'Missing required fields' };
-    }
-
-    await DB.prepare(
-      `UPDATE members SET
-        name = ?,
-        email = ?,
-        phone = ?,
-        years_investing = ?,
-        trading_style = ?,
-        areas_of_expertise = ?,
-        macro_knowledge = ?,
-        portfolio_size = ?,
-        investment_journey = ?,
-        expectations = ?,
-        referral_source = ?,
-        updated_at = datetime('now')
-      WHERE id = ?`,
-    )
-      .bind(
+    await db
+      .update(members)
+      .set({
         name,
         email,
         phone,
@@ -55,10 +46,10 @@ export async function updateMember(formData: FormData) {
         portfolio_size,
         investment_journey,
         expectations,
-        referral_source || null,
-        id,
-      )
-      .run();
+        referral_source: referral_source || null,
+        updated_at: sql`datetime('now')`,
+      })
+      .where(eq(members.id, id));
 
     revalidatePath('/admin/settings/members');
     revalidatePath(`/admin/settings/members/${id}`);
@@ -71,7 +62,8 @@ export async function updateMember(formData: FormData) {
 }
 
 /**
- * Update member status (pending → approved → active)
+ * Update a member's status (pending → approved → active).
+ * When approving, reads the actual admin email from getAuthInfo() for reviewed_by.
  */
 export async function updateMemberStatus(
   id: number,
@@ -79,24 +71,32 @@ export async function updateMemberStatus(
   reviewerName: string,
 ) {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
+    const db = getDb();
 
-    // Build the UPDATE query based on the new status
-    let query = 'UPDATE members SET status = ?, updated_at = datetime(\'now\')';
-    const params: any[] = [newStatus];
+    // Resolve the actual reviewer email from Cloudflare Access auth info
+    const authInfo = await getAuthInfo();
+    const resolvedReviewer = authInfo?.email ?? reviewerName;
+
+    let updateFields: Record<string, unknown> = {
+      status: newStatus,
+      updated_at: sql`datetime('now')`,
+    };
 
     if (newStatus === 'approved') {
-      query += ', reviewed_by = ?, reviewed_at = datetime(\'now\'), approved_at = datetime(\'now\')';
-      params.push(reviewerName);
+      updateFields = {
+        ...updateFields,
+        reviewed_by: resolvedReviewer,
+        reviewed_at: sql`datetime('now')`,
+        approved_at: sql`datetime('now')`,
+      };
     } else if (newStatus === 'active') {
-      query += ', activated_at = datetime(\'now\')';
+      updateFields = {
+        ...updateFields,
+        activated_at: sql`datetime('now')`,
+      };
     }
 
-    query += ' WHERE id = ?';
-    params.push(id);
-
-    await DB.prepare(query).bind(...params).run();
+    await db.update(members).set(updateFields).where(eq(members.id, id));
 
     revalidatePath('/admin/settings/members');
     revalidatePath(`/admin/settings/members/${id}`);
@@ -113,21 +113,23 @@ export async function updateMemberStatus(
 }
 
 /**
- * Add admin note to member
+ * Append a timestamped admin note to a member's admin_notes field.
+ * Notes are stored as newline-separated entries with ISO timestamps.
  */
 export async function addMemberNote(id: number, note: string) {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
+    const db = getDb();
 
     if (!note || note.trim() === '') {
       return { success: false, error: 'Note cannot be empty' };
     }
 
     // Get current notes
-    const member = await DB.prepare('SELECT admin_notes FROM members WHERE id = ?').bind(id).first<{
-      admin_notes: string | null;
-    }>();
+    const member = await db
+      .select({ admin_notes: members.admin_notes })
+      .from(members)
+      .where(eq(members.id, id))
+      .get();
 
     if (!member) {
       return { success: false, error: 'Member not found' };
@@ -138,9 +140,13 @@ export async function addMemberNote(id: number, note: string) {
     const newNote = `[${timestamp}] ${note}`;
     const updatedNotes = member.admin_notes ? `${member.admin_notes}\n\n${newNote}` : newNote;
 
-    await DB.prepare('UPDATE members SET admin_notes = ?, updated_at = datetime(\'now\') WHERE id = ?')
-      .bind(updatedNotes, id)
-      .run();
+    await db
+      .update(members)
+      .set({
+        admin_notes: updatedNotes,
+        updated_at: sql`datetime('now')`,
+      })
+      .where(eq(members.id, id));
 
     revalidatePath('/admin/settings/members');
     revalidatePath(`/admin/settings/members/${id}`);
@@ -153,14 +159,14 @@ export async function addMemberNote(id: number, note: string) {
 }
 
 /**
- * Delete member
+ * Permanently delete a member record.
+ * Admin-only action — no cascading side effects beyond the members table.
  */
 export async function deleteMember(id: number) {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
+    const db = getDb();
 
-    await DB.prepare('DELETE FROM members WHERE id = ?').bind(id).run();
+    await db.delete(members).where(eq(members.id, id));
 
     revalidatePath('/admin/settings/members');
 
