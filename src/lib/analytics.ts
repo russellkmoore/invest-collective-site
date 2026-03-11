@@ -1,7 +1,10 @@
 'use server';
 
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDb } from '@/lib/db';
+import { analyticsEvents } from '../../drizzle/schema';
+import { eq, and, gte, count, isNotNull, ne, sql } from 'drizzle-orm';
 import { headers } from 'next/headers';
+import { parseUserAgent } from '@/lib/user-agent-parser';
 
 type EventType = 'page_view' | 'article_view' | 'pdf_download' | 'topic_filter';
 
@@ -14,28 +17,27 @@ interface AnalyticsEvent {
 
 export async function trackEvent(event: AnalyticsEvent) {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
-
-    const headersList = headers();
+    const db = getDb();
+    const headersList = await headers();
     const userAgent = headersList.get('user-agent') || '';
     const cfCountry = headersList.get('cf-ipcountry') || '';
     const referrer = headersList.get('referer') || '';
 
-    await DB.prepare(
-      `INSERT INTO analytics_events (event_type, page_path, article_slug, topic, user_agent, country, referrer)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
-      .bind(
-        event.event_type,
-        event.page_path || null,
-        event.article_slug || null,
-        event.topic || null,
-        userAgent,
-        cfCountry,
-        referrer,
-      )
-      .run();
+    // Parse UA at write time so analytics queries can GROUP BY parsed columns
+    const { browser, os, device } = parseUserAgent(userAgent);
+
+    await db.insert(analyticsEvents).values({
+      event_type: event.event_type,
+      page_path: event.page_path ?? null,
+      article_slug: event.article_slug ?? null,
+      topic: event.topic ?? null,
+      user_agent: userAgent,
+      country: cfCountry,
+      referrer: referrer,
+      browser,
+      os,
+      device,
+    });
 
     return { success: true };
   } catch (error) {
@@ -47,164 +49,209 @@ export async function trackEvent(event: AnalyticsEvent) {
 
 export async function getAnalyticsSummary(days = 30) {
   try {
-    const { env } = getCloudflareContext();
-    const { DB } = env;
+    const db = getDb();
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString();
 
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    const cutoffDateStr = cutoffDate.toISOString();
+    // Execute all 11 queries in a single D1 batch round-trip
+    const [
+      totalEventsResult,
+      articleViewsResult,
+      pdfDownloadsResult,
+      pageViewsResult,
+      topPagesResult,
+      topArticlesResult,
+      topTopicsResult,
+      eventsByDayResult,
+      topCountriesResult,
+      topReferrersResult,
+      browserGroupResult,
+      deviceGroupResult,
+      hourlyActivityResult,
+      dailyActivityResult,
+    ] = await db.batch([
+      // Total events
+      db.select({ count: count() })
+        .from(analyticsEvents)
+        .where(gte(analyticsEvents.timestamp, cutoff)),
 
-    // Total events
-    const totalEvents = await DB.prepare(
-      `SELECT COUNT(*) as count FROM analytics_events WHERE timestamp >= ?`,
-    )
-      .bind(cutoffDateStr)
-      .first<{ count: number }>();
+      // Article views
+      db.select({ count: count() })
+        .from(analyticsEvents)
+        .where(and(eq(analyticsEvents.event_type, 'article_view'), gte(analyticsEvents.timestamp, cutoff))),
 
-    // Article views
-    const articleViews = await DB.prepare(
-      `SELECT COUNT(*) as count FROM analytics_events
-       WHERE event_type = 'article_view' AND timestamp >= ?`,
-    )
-      .bind(cutoffDateStr)
-      .first<{ count: number }>();
+      // PDF downloads
+      db.select({ count: count() })
+        .from(analyticsEvents)
+        .where(and(eq(analyticsEvents.event_type, 'pdf_download'), gte(analyticsEvents.timestamp, cutoff))),
 
-    // PDF downloads
-    const pdfDownloads = await DB.prepare(
-      `SELECT COUNT(*) as count FROM analytics_events
-       WHERE event_type = 'pdf_download' AND timestamp >= ?`,
-    )
-      .bind(cutoffDateStr)
-      .first<{ count: number }>();
+      // Page views
+      db.select({ count: count() })
+        .from(analyticsEvents)
+        .where(and(eq(analyticsEvents.event_type, 'page_view'), gte(analyticsEvents.timestamp, cutoff))),
 
-    // Page views
-    const pageViews = await DB.prepare(
-      `SELECT COUNT(*) as count FROM analytics_events
-       WHERE event_type = 'page_view' AND timestamp >= ?`,
-    )
-      .bind(cutoffDateStr)
-      .first<{ count: number }>();
+      // Top pages
+      db.select({
+        page_path: analyticsEvents.page_path,
+        views: count(),
+      })
+        .from(analyticsEvents)
+        .where(and(
+          eq(analyticsEvents.event_type, 'page_view'),
+          isNotNull(analyticsEvents.page_path),
+          gte(analyticsEvents.timestamp, cutoff),
+        ))
+        .groupBy(analyticsEvents.page_path)
+        .orderBy(sql`count(*) desc`)
+        .limit(10),
 
-    // Top pages
-    const topPages = await DB.prepare(
-      `SELECT page_path, COUNT(*) as views
-       FROM analytics_events
-       WHERE event_type = 'page_view' AND page_path IS NOT NULL AND timestamp >= ?
-       GROUP BY page_path
-       ORDER BY views DESC
-       LIMIT 10`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ page_path: string; views: number }>();
+      // Top articles
+      db.select({
+        article_slug: analyticsEvents.article_slug,
+        views: count(),
+      })
+        .from(analyticsEvents)
+        .where(and(
+          eq(analyticsEvents.event_type, 'article_view'),
+          isNotNull(analyticsEvents.article_slug),
+          gte(analyticsEvents.timestamp, cutoff),
+        ))
+        .groupBy(analyticsEvents.article_slug)
+        .orderBy(sql`count(*) desc`)
+        .limit(10),
 
-    // Top articles
-    const topArticles = await DB.prepare(
-      `SELECT article_slug, COUNT(*) as views
-       FROM analytics_events
-       WHERE event_type = 'article_view' AND article_slug IS NOT NULL AND timestamp >= ?
-       GROUP BY article_slug
-       ORDER BY views DESC
-       LIMIT 10`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ article_slug: string; views: number }>();
+      // Top topics
+      db.select({
+        topic: analyticsEvents.topic,
+        clicks: count(),
+      })
+        .from(analyticsEvents)
+        .where(and(
+          eq(analyticsEvents.event_type, 'topic_filter'),
+          isNotNull(analyticsEvents.topic),
+          gte(analyticsEvents.timestamp, cutoff),
+        ))
+        .groupBy(analyticsEvents.topic)
+        .orderBy(sql`count(*) desc`)
+        .limit(10),
 
-    // Top topics
-    const topTopics = await DB.prepare(
-      `SELECT topic, COUNT(*) as clicks
-       FROM analytics_events
-       WHERE event_type = 'topic_filter' AND topic IS NOT NULL AND timestamp >= ?
-       GROUP BY topic
-       ORDER BY clicks DESC
-       LIMIT 10`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ topic: string; clicks: number }>();
+      // Events by day
+      db.select({
+        date: sql<string>`DATE(${analyticsEvents.timestamp})`,
+        count: count(),
+      })
+        .from(analyticsEvents)
+        .where(gte(analyticsEvents.timestamp, cutoff))
+        .groupBy(sql`DATE(${analyticsEvents.timestamp})`)
+        .orderBy(sql`DATE(${analyticsEvents.timestamp}) desc`)
+        .limit(30),
 
-    // Events by day (last 30 days)
-    const eventsByDay = await DB.prepare(
-      `SELECT DATE(timestamp) as date, COUNT(*) as count
-       FROM analytics_events
-       WHERE timestamp >= ?
-       GROUP BY DATE(timestamp)
-       ORDER BY date DESC
-       LIMIT 30`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ date: string; count: number }>();
+      // Top countries
+      db.select({
+        country: analyticsEvents.country,
+        visitors: count(),
+      })
+        .from(analyticsEvents)
+        .where(and(
+          isNotNull(analyticsEvents.country),
+          ne(analyticsEvents.country, ''),
+          gte(analyticsEvents.timestamp, cutoff),
+        ))
+        .groupBy(analyticsEvents.country)
+        .orderBy(sql`count(*) desc`)
+        .limit(10),
 
-    // Top countries
-    const topCountries = await DB.prepare(
-      `SELECT country, COUNT(*) as visitors
-       FROM analytics_events
-       WHERE country IS NOT NULL AND country != '' AND timestamp >= ?
-       GROUP BY country
-       ORDER BY visitors DESC
-       LIMIT 10`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ country: string; visitors: number }>();
+      // Top referrers
+      db.select({
+        referrer: analyticsEvents.referrer,
+        visits: count(),
+      })
+        .from(analyticsEvents)
+        .where(and(
+          isNotNull(analyticsEvents.referrer),
+          ne(analyticsEvents.referrer, ''),
+          gte(analyticsEvents.timestamp, cutoff),
+        ))
+        .groupBy(analyticsEvents.referrer)
+        .orderBy(sql`count(*) desc`)
+        .limit(10),
 
-    // Top referrers
-    const topReferrers = await DB.prepare(
-      `SELECT referrer, COUNT(*) as visits
-       FROM analytics_events
-       WHERE referrer IS NOT NULL AND referrer != '' AND timestamp >= ?
-       GROUP BY referrer
-       ORDER BY visits DESC
-       LIMIT 10`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ referrer: string; visits: number }>();
+      // Browser breakdown (grouped by pre-parsed browser column)
+      db.select({
+        browser: analyticsEvents.browser,
+        count: count(),
+      })
+        .from(analyticsEvents)
+        .where(and(
+          isNotNull(analyticsEvents.browser),
+          gte(analyticsEvents.timestamp, cutoff),
+        ))
+        .groupBy(analyticsEvents.browser)
+        .orderBy(sql`count(*) desc`),
 
-    // Device and browser data (we'll parse this in the component)
-    const userAgents = await DB.prepare(
-      `SELECT user_agent, COUNT(*) as count
-       FROM analytics_events
-       WHERE user_agent IS NOT NULL AND user_agent != '' AND timestamp >= ?
-       GROUP BY user_agent`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ user_agent: string; count: number }>();
+      // Device breakdown (grouped by pre-parsed device column)
+      db.select({
+        device: analyticsEvents.device,
+        count: count(),
+      })
+        .from(analyticsEvents)
+        .where(and(
+          isNotNull(analyticsEvents.device),
+          gte(analyticsEvents.timestamp, cutoff),
+        ))
+        .groupBy(analyticsEvents.device)
+        .orderBy(sql`count(*) desc`),
 
-    // Hour of day activity
-    const hourlyActivity = await DB.prepare(
-      `SELECT CAST(strftime('%H', timestamp) AS INTEGER) as hour, COUNT(*) as count
-       FROM analytics_events
-       WHERE timestamp >= ?
-       GROUP BY hour
-       ORDER BY hour`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ hour: number; count: number }>();
+      // Hourly activity
+      db.select({
+        hour: sql<number>`CAST(strftime('%H', ${analyticsEvents.timestamp}) AS INTEGER)`,
+        count: count(),
+      })
+        .from(analyticsEvents)
+        .where(gte(analyticsEvents.timestamp, cutoff))
+        .groupBy(sql`CAST(strftime('%H', ${analyticsEvents.timestamp}) AS INTEGER)`)
+        .orderBy(sql`CAST(strftime('%H', ${analyticsEvents.timestamp}) AS INTEGER)`),
 
-    // Day of week activity
-    const dailyActivity = await DB.prepare(
-      `SELECT CAST(strftime('%w', timestamp) AS INTEGER) as day, COUNT(*) as count
-       FROM analytics_events
-       WHERE timestamp >= ?
-       GROUP BY day
-       ORDER BY day`,
-    )
-      .bind(cutoffDateStr)
-      .all<{ day: number; count: number }>();
+      // Day of week activity
+      db.select({
+        day: sql<number>`CAST(strftime('%w', ${analyticsEvents.timestamp}) AS INTEGER)`,
+        count: count(),
+      })
+        .from(analyticsEvents)
+        .where(gte(analyticsEvents.timestamp, cutoff))
+        .groupBy(sql`CAST(strftime('%w', ${analyticsEvents.timestamp}) AS INTEGER)`)
+        .orderBy(sql`CAST(strftime('%w', ${analyticsEvents.timestamp}) AS INTEGER)`),
+    ]);
 
     return {
       summary: {
-        totalEvents: totalEvents?.count || 0,
-        pageViews: pageViews?.count || 0,
-        articleViews: articleViews?.count || 0,
-        pdfDownloads: pdfDownloads?.count || 0,
+        totalEvents: totalEventsResult[0]?.count ?? 0,
+        pageViews: pageViewsResult[0]?.count ?? 0,
+        articleViews: articleViewsResult[0]?.count ?? 0,
+        pdfDownloads: pdfDownloadsResult[0]?.count ?? 0,
       },
-      topPages: topPages.results || [],
-      topArticles: topArticles.results || [],
-      topTopics: topTopics.results || [],
-      eventsByDay: eventsByDay.results || [],
-      topCountries: topCountries.results || [],
-      topReferrers: topReferrers.results || [],
-      userAgents: userAgents.results || [],
-      hourlyActivity: hourlyActivity.results || [],
-      dailyActivity: dailyActivity.results || [],
+      topPages: (topPagesResult as Array<{ page_path: string | null; views: number }>).filter(
+        (r) => r.page_path != null,
+      ) as Array<{ page_path: string; views: number }>,
+      topArticles: (topArticlesResult as Array<{ article_slug: string | null; views: number }>).filter(
+        (r) => r.article_slug != null,
+      ) as Array<{ article_slug: string; views: number }>,
+      topTopics: (topTopicsResult as Array<{ topic: string | null; clicks: number }>).filter(
+        (r) => r.topic != null,
+      ) as Array<{ topic: string; clicks: number }>,
+      eventsByDay: eventsByDayResult as Array<{ date: string; count: number }>,
+      topCountries: (topCountriesResult as Array<{ country: string | null; visitors: number }>).filter(
+        (r) => r.country != null,
+      ) as Array<{ country: string; visitors: number }>,
+      topReferrers: (topReferrersResult as Array<{ referrer: string | null; visits: number }>).filter(
+        (r) => r.referrer != null,
+      ) as Array<{ referrer: string; visits: number }>,
+      // Pre-grouped by parsed columns — analytics dashboard no longer needs to parse raw UA strings
+      browsers: browserGroupResult as Array<{ browser: string | null; count: number }>,
+      devices: deviceGroupResult as Array<{ device: string | null; count: number }>,
+      // Legacy field kept for backward compat — empty since we now group by parsed columns
+      userAgents: [] as Array<{ user_agent: string; count: number }>,
+      hourlyActivity: hourlyActivityResult as Array<{ hour: number; count: number }>,
+      dailyActivity: dailyActivityResult as Array<{ day: number; count: number }>,
     };
   } catch (error) {
     console.error('Analytics summary error:', error);
@@ -216,6 +263,8 @@ export async function getAnalyticsSummary(days = 30) {
       eventsByDay: [],
       topCountries: [],
       topReferrers: [],
+      browsers: [],
+      devices: [],
       userAgents: [],
       hourlyActivity: [],
       dailyActivity: [],

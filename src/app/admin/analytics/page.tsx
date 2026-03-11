@@ -1,6 +1,6 @@
 import { getAnalyticsSummary } from '@/lib/analytics';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { parseUserAgent, getCountryFlag, getCountryName } from '@/lib/userAgentParser';
+import { getCountryFlag, getCountryName } from '@/lib/user-agent-parser';
 import Link from 'next/link';
 import { BarChart3, Eye, Download, Filter, TrendingUp, FileText, ChevronLeft, Globe, Link as LinkIcon, Monitor, Clock } from 'lucide-react';
 
@@ -40,25 +40,16 @@ export default async function AnalyticsPage() {
   const articleSlugs = analytics.topArticles.map((a) => a.article_slug);
   const articleTitles = await getArticleTitles(articleSlugs);
 
-  const { summary, topPages, topArticles, topTopics, eventsByDay, topCountries, topReferrers, userAgents, hourlyActivity, dailyActivity } = analytics;
+  const { summary, topPages, topArticles, topTopics, eventsByDay, topCountries, topReferrers, hourlyActivity, dailyActivity } = analytics;
 
-  // Process user agents to get device and browser stats
-  const deviceCounts = new Map<string, number>();
-  const browserCounts = new Map<string, number>();
+  // Use pre-parsed browser/device columns from DB (no client-side UA parsing needed)
+  const devices = (analytics.devices ?? [])
+    .filter((d) => d.device != null)
+    .map((d) => ({ type: d.device as string, count: d.count }));
 
-  userAgents.forEach(({ user_agent, count }) => {
-    const { deviceType, browser } = parseUserAgent(user_agent);
-    deviceCounts.set(deviceType, (deviceCounts.get(deviceType) || 0) + count);
-    browserCounts.set(browser, (browserCounts.get(browser) || 0) + count);
-  });
-
-  const devices = Array.from(deviceCounts.entries())
-    .map(([type, count]) => ({ type, count }))
-    .sort((a, b) => b.count - a.count);
-
-  const browsers = Array.from(browserCounts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
+  const browsers = (analytics.browsers ?? [])
+    .filter((b) => b.browser != null)
+    .map((b) => ({ name: b.browser as string, count: b.count }));
 
   // Process hourly activity for heatmap (create 24-hour array)
   const hourlyData = Array.from({ length: 24 }, (_, i) => {
