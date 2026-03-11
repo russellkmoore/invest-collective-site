@@ -132,7 +132,7 @@ export default function SignupPage() {
   return (
     <>
       <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
-    <div className="min-h-screen bg-gray-50 py-24">
+    <div className="min-h-screen bg-gray-50 py-12 sm:py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <div className="mb-6">
@@ -144,8 +144,8 @@ export default function SignupPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 md:p-12">
           {/* Header */}
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Apply to Join</h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Apply to Join</h1>
+            <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto">
               We&apos;re looking for passionate investors who want to collaborate, share insights, and grow together.
               Tell us about your investment journey and what you hope to contribute to our community.
             </p>
