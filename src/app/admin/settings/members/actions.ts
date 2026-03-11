@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { getDb } from '@/lib/db';
 import { getAuthInfo } from '@/lib/auth';
 import { members } from '../../../../../drizzle/schema';
+import { sendWelcomeEmail as sendWelcomeEmailUtil } from '@/lib/email';
 
 /** Full member profile update schema (admin edits to existing member records). */
 const updateMemberProfileSchema = z.object({
@@ -184,5 +185,40 @@ export async function deleteMember(id: number) {
   } catch (error) {
     console.error('Error deleting member:', error);
     return { success: false, error: 'Failed to delete member' };
+  }
+}
+
+/**
+ * Send a welcome email to an approved/active member.
+ * Admin-triggered only — not called automatically on status change.
+ */
+export async function sendWelcomeEmail(memberId: number) {
+  try {
+    const db = getDb();
+
+    const member = await db
+      .select({ name: members.name, email: members.email, status: members.status })
+      .from(members)
+      .where(eq(members.id, memberId))
+      .get();
+
+    if (!member) {
+      return { success: false, error: 'Member not found' };
+    }
+
+    if (member.status !== 'approved' && member.status !== 'active') {
+      return { success: false, error: 'Member must be approved or active before sending welcome email' };
+    }
+
+    const result = await sendWelcomeEmailUtil({ name: member.name, email: member.email });
+
+    if (!result.success) {
+      return { success: false, error: result.error || 'Failed to send welcome email' };
+    }
+
+    return { success: true, message: `Welcome email sent to ${member.email}` };
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to send welcome email' };
   }
 }
