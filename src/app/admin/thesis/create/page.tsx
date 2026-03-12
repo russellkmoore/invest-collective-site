@@ -5,16 +5,31 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Plus, Trash2, Loader2, TrendingUp } from 'lucide-react';
 import { createThesis } from '../actions';
+import { DATA_SOURCE_INDICATORS } from '@/lib/data-source-indicators';
 
 type DataPoint = {
   name: string;
   metric_type: string;
   data_source: string;
-  data_source_identifier?: string;
+  data_source_identifier: string;
   target_value: string;
   target_direction: string;
   target_threshold_low?: string;
   target_threshold_high?: string;
+  // Track whether admin picked a curated indicator ('curated') or 'custom'
+  _indicator_selection: string;
+};
+
+const EMPTY_DATA_POINT: DataPoint = {
+  name: '',
+  metric_type: 'price',
+  data_source: '',
+  data_source_identifier: '',
+  target_value: '',
+  target_direction: 'above',
+  target_threshold_low: '',
+  target_threshold_high: '',
+  _indicator_selection: '',
 };
 
 export default function CreateThesisPage() {
@@ -39,26 +54,8 @@ export default function CreateThesisPage() {
   });
 
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([
-    {
-      name: '',
-      metric_type: 'price',
-      data_source: 'manual',
-      data_source_identifier: '',
-      target_value: '',
-      target_direction: 'above',
-      target_threshold_low: '',
-      target_threshold_high: '',
-    },
-    {
-      name: '',
-      metric_type: 'price',
-      data_source: 'manual',
-      data_source_identifier: '',
-      target_value: '',
-      target_direction: 'above',
-      target_threshold_low: '',
-      target_threshold_high: '',
-    },
+    { ...EMPTY_DATA_POINT },
+    { ...EMPTY_DATA_POINT },
   ]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,21 +75,47 @@ export default function CreateThesisPage() {
     setDataPoints(newDataPoints);
   };
 
+  /**
+   * When a curated indicator is selected from the picker, auto-fill data_source,
+   * data_source_identifier, and metric_type from the indicator definition.
+   * When "custom" is selected, clear those fields so admin can enter them manually.
+   */
+  const handleIndicatorSelect = (index: number, indicatorIdentifier: string) => {
+    const newDataPoints = [...dataPoints];
+    if (indicatorIdentifier === 'custom') {
+      newDataPoints[index] = {
+        ...newDataPoints[index],
+        _indicator_selection: 'custom',
+        data_source: 'manual',
+        data_source_identifier: '',
+        metric_type: 'custom',
+      };
+    } else if (indicatorIdentifier === '') {
+      newDataPoints[index] = {
+        ...newDataPoints[index],
+        _indicator_selection: '',
+        data_source: '',
+        data_source_identifier: '',
+        metric_type: 'price',
+      };
+    } else {
+      const indicator = DATA_SOURCE_INDICATORS.find((ind) => ind.identifier === indicatorIdentifier);
+      if (indicator) {
+        newDataPoints[index] = {
+          ...newDataPoints[index],
+          _indicator_selection: indicator.identifier,
+          data_source: indicator.source,
+          data_source_identifier: indicator.identifier,
+          metric_type: indicator.metric_type,
+        };
+      }
+    }
+    setDataPoints(newDataPoints);
+  };
+
   const addDataPoint = () => {
     if (dataPoints.length < 8) {
-      setDataPoints([
-        ...dataPoints,
-        {
-          name: '',
-          metric_type: 'price',
-          data_source: 'manual',
-          data_source_identifier: '',
-          target_value: '',
-          target_direction: 'above',
-          target_threshold_low: '',
-          target_threshold_high: '',
-        },
-      ]);
+      setDataPoints([...dataPoints, { ...EMPTY_DATA_POINT }]);
     }
   };
 
@@ -110,6 +133,16 @@ export default function CreateThesisPage() {
       setSubmitStatus('error');
       setErrorMessage('Thesis must have between 2 and 8 data points');
       return;
+    }
+
+    // Validate each data point has data_source and data_source_identifier
+    for (let i = 0; i < dataPoints.length; i++) {
+      const dp = dataPoints[i];
+      if (!dp.data_source || !dp.data_source_identifier) {
+        setSubmitStatus('error');
+        setErrorMessage(`Data Point ${i + 1} is missing a data source or source identifier`);
+        return;
+      }
     }
 
     // Validate prediction window
@@ -177,6 +210,10 @@ export default function CreateThesisPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Group indicators by source for the picker optgroups
+  const fredIndicators = DATA_SOURCE_INDICATORS.filter((ind) => ind.source === 'fred');
+  const yahooIndicators = DATA_SOURCE_INDICATORS.filter((ind) => ind.source === 'yahoo_finance');
 
   return (
     <div className="py-6">
@@ -306,38 +343,38 @@ export default function CreateThesisPage() {
               </div>
             </div>
 
-            {/* AI Tracking */}
+            {/* Source */}
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-2 border-b border-gray-200">
-                AI Tracking (Optional)
+                Source
               </h2>
               <div className="space-y-6">
                 <div>
                   <label htmlFor="generation_method" className="block text-base font-medium text-gray-900 mb-2">
-                    Generation Method
+                    Source <span className="text-red-500">*</span>
                   </label>
                   <select
                     id="generation_method"
                     name="generation_method"
+                    required
                     value={formData.generation_method}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
-                    <option value="manual">Manual (Human Created)</option>
-                    <option value="ai_assisted">AI-Assisted (Human + AI)</option>
-                    <option value="ai_generated">AI-Generated (Fully AI)</option>
+                    <option value="manual">Human</option>
+                    <option value="ai_generated">AI</option>
                   </select>
                   <p className="mt-2 text-sm text-gray-500">
-                    Track whether this thesis was created manually, with AI assistance, or fully AI-generated
+                    Whether this thesis was created by a human analyst or generated by AI
                   </p>
                 </div>
 
-                {(formData.generation_method === 'ai_assisted' || formData.generation_method === 'ai_generated') && (
+                {formData.generation_method === 'ai_generated' && (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label htmlFor="ai_model" className="block text-base font-medium text-gray-900 mb-2">
-                          AI Model Used
+                          AI Model Used (Optional)
                         </label>
                         <select
                           id="ai_model"
@@ -358,7 +395,7 @@ export default function CreateThesisPage() {
 
                       <div>
                         <label htmlFor="ai_prompt_version" className="block text-base font-medium text-gray-900 mb-2">
-                          Prompt Version
+                          Prompt Version (Optional)
                         </label>
                         <input
                           type="text"
@@ -377,7 +414,7 @@ export default function CreateThesisPage() {
 
                     <div>
                       <label htmlFor="source_headlines" className="block text-base font-medium text-gray-900 mb-2">
-                        Source Headlines (JSON Array)
+                        Source Headlines (JSON Array, Optional)
                       </label>
                       <textarea
                         id="source_headlines"
@@ -602,35 +639,89 @@ export default function CreateThesisPage() {
                         </select>
                       </div>
 
-                      <div>
+                      {/* Data source picker — curated indicators grouped by source */}
+                      <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Data Source <span className="text-red-500">*</span>
+                          Data Source Indicator <span className="text-red-500">*</span>
                         </label>
                         <select
                           required
-                          value={dp.data_source}
-                          onChange={(e) => handleDataPointChange(index, 'data_source', e.target.value)}
+                          value={dp._indicator_selection}
+                          onChange={(e) => handleIndicatorSelect(index, e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
-                          <option value="manual">Manual Entry</option>
-                          <option value="yahoo_finance">Yahoo Finance</option>
-                          <option value="fred">FRED</option>
-                          <option value="alpha_vantage">Alpha Vantage</option>
+                          <option value="">Select an indicator...</option>
+                          <optgroup label="FRED Economic Data">
+                            {fredIndicators.map((ind) => (
+                              <option key={ind.identifier} value={ind.identifier}>
+                                {ind.label} ({ind.identifier})
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Yahoo Finance Market Data">
+                            {yahooIndicators.map((ind) => (
+                              <option key={ind.identifier} value={ind.identifier}>
+                                {ind.label} ({ind.identifier})
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Other">
+                            <option value="custom">Custom</option>
+                          </optgroup>
                         </select>
+                        {dp._indicator_selection && dp._indicator_selection !== 'custom' && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            {DATA_SOURCE_INDICATORS.find((i) => i.identifier === dp._indicator_selection)?.description}
+                          </p>
+                        )}
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Source Identifier
-                        </label>
-                        <input
-                          type="text"
-                          value={dp.data_source_identifier}
-                          onChange={(e) => handleDataPointChange(index, 'data_source_identifier', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="NVDA, DGS10, etc."
-                        />
-                      </div>
+                      {/* Custom source fields — only shown when Custom is selected */}
+                      {dp._indicator_selection === 'custom' && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-900 mb-2">
+                              Data Source <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              required
+                              value={dp.data_source}
+                              onChange={(e) => handleDataPointChange(index, 'data_source', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="manual">Manual Entry</option>
+                              <option value="yahoo_finance">Yahoo Finance</option>
+                              <option value="fred">FRED</option>
+                              <option value="alpha_vantage">Alpha Vantage</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-900 mb-2">
+                              Source Identifier <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={dp.data_source_identifier}
+                              onChange={(e) =>
+                                handleDataPointChange(index, 'data_source_identifier', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="NVDA, DGS10, etc."
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {/* Hidden inputs to carry auto-filled values when curated indicator is selected */}
+                      {dp._indicator_selection && dp._indicator_selection !== 'custom' && (
+                        <div className="md:col-span-2 text-xs text-gray-500 bg-blue-50 border border-blue-100 rounded p-2">
+                          Source: <span className="font-medium">{dp.data_source}</span> &nbsp;|&nbsp;
+                          Identifier: <span className="font-medium">{dp.data_source_identifier}</span> &nbsp;|&nbsp;
+                          Metric: <span className="font-medium">{dp.metric_type}</span>
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
