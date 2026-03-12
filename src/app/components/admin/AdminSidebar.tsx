@@ -12,8 +12,6 @@ import {
   Users,
   BarChart3,
   Key,
-  Settings,
-  ExternalLink,
   Menu,
 } from 'lucide-react';
 import { cn } from '@/app/components/ui/utils';
@@ -32,17 +30,18 @@ const navItems = [
   { label: 'Members', icon: Users, href: '/admin/settings/members' },
   { label: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   { label: 'API Keys', icon: Key, href: '/admin/api-keys' },
-  { label: 'Settings', icon: Settings, href: '/admin/settings' },
 ];
 
 function NavItem({
   item,
   pathname,
   onClick,
+  collapsed,
 }: {
   item: (typeof navItems)[number];
   pathname: string;
   onClick?: () => void;
+  collapsed?: boolean;
 }) {
   const isActive = item.exact
     ? pathname === item.href
@@ -52,50 +51,49 @@ function NavItem({
     <Link
       href={item.href}
       onClick={onClick}
+      title={collapsed ? item.label : undefined}
       className={cn(
-        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+        'flex items-center gap-3 rounded-lg text-sm font-medium transition-colors',
+        collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5',
         isActive
           ? 'bg-blue-50 text-blue-700'
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       )}
     >
       <item.icon className="w-5 h-5 shrink-0" />
-      <span>{item.label}</span>
+      {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
     </Link>
   );
 }
 
-function SidebarNav({ pathname, onNavClick }: { pathname: string; onNavClick?: () => void }) {
+function SidebarNav({
+  pathname,
+  onNavClick,
+  collapsed,
+}: {
+  pathname: string;
+  onNavClick?: () => void;
+  collapsed?: boolean;
+}) {
   return (
     <div className="flex flex-col h-full">
-      {/* Logo / Title */}
-      <div className="px-4 py-5 border-b border-gray-200">
-        <span className="text-lg font-bold text-gray-900">IC Admin</span>
+      <div className={cn('border-b border-gray-200', collapsed ? 'px-2 py-5 text-center' : 'px-4 py-5')}>
+        <span className="text-lg font-bold text-gray-900">
+          {collapsed ? 'IC' : 'IC Admin'}
+        </span>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className={cn('flex-1 py-4 space-y-1 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
         {navItems.map((item) => (
           <NavItem
             key={item.href}
             item={item}
             pathname={pathname}
             onClick={onNavClick}
+            collapsed={collapsed}
           />
         ))}
       </nav>
-
-      {/* Back to site */}
-      <div className="px-3 py-4 border-t border-gray-200">
-        <Link
-          href="/"
-          onClick={onNavClick}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-        >
-          <ExternalLink className="w-5 h-5 shrink-0" />
-          <span>Back to site</span>
-        </Link>
-      </div>
     </div>
   );
 }
@@ -106,9 +104,14 @@ export function AdminSidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:flex-col fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 z-30">
-        <SidebarNav pathname={pathname} />
+      {/* Desktop sidebar — icons only, expands on hover */}
+      <aside className="hidden lg:flex lg:flex-col fixed inset-y-0 left-0 bg-white border-r border-gray-200 z-30 w-16 hover:w-64 transition-[width] duration-200 group/sidebar overflow-hidden">
+        <div className="group-hover/sidebar:hidden h-full">
+          <SidebarNav pathname={pathname} collapsed />
+        </div>
+        <div className="hidden group-hover/sidebar:flex flex-col h-full">
+          <SidebarNav pathname={pathname} />
+        </div>
       </aside>
 
       {/* Mobile hamburger + Sheet */}

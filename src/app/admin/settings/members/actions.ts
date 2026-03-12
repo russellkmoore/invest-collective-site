@@ -8,6 +8,22 @@ import { getAuthInfo } from '@/lib/auth';
 import { members } from '../../../../../drizzle/schema';
 import { sendWelcomeEmail as sendWelcomeEmailUtil } from '@/lib/email';
 
+/**
+ * Fetch a single member by ID. Used by the admin detail page
+ * to avoid going through the API key-protected REST endpoint.
+ */
+export async function getMember(id: number) {
+  try {
+    const db = getDb();
+    const member = await db.select().from(members).where(eq(members.id, id)).get();
+    if (!member) return { success: false as const, error: 'Member not found' };
+    return { success: true as const, member };
+  } catch (error) {
+    console.error('Error fetching member:', error);
+    return { success: false as const, error: 'Failed to load member' };
+  }
+}
+
 /** Full member profile update schema (admin edits to existing member records). */
 const updateMemberProfileSchema = z.object({
   id: z.coerce.number().int().positive('Member ID is required'),

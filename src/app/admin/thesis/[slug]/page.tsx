@@ -189,7 +189,7 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-24 flex items-center justify-center">
+      <div className="py-6 flex items-center justify-center">
         <div className="text-gray-500">Loading thesis...</div>
       </div>
     );
@@ -197,7 +197,7 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
 
   if (!thesis) {
     return (
-      <div className="min-h-screen bg-gray-50 py-24 flex items-center justify-center">
+      <div className="py-6 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Thesis Not Found</h2>
           <Link href="/admin/thesis" className="text-blue-600 hover:text-blue-700">
@@ -217,7 +217,7 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
   const isClosed = thesis.status === 'closed';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-24">
+    <div className="py-6">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">

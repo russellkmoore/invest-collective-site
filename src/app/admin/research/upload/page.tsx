@@ -80,7 +80,7 @@ export default function AdminUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-24">
+    <div className="py-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <div className="mb-6 flex items-center justify-between">

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Save, Trash2, CheckCircle, XCircle, Clock, UserCheck, Mail } from 'lucide-react';
-import { updateMember, updateMemberStatus, addMemberNote, deleteMember, sendWelcomeEmail } from '../actions';
+import { getMember, updateMember, updateMemberStatus, addMemberNote, deleteMember, sendWelcomeEmail } from '../actions';
 
 interface Member {
   id: number;
@@ -46,13 +46,12 @@ export default function MemberDetailPage() {
   useEffect(() => {
     if (!id) return;
 
-    fetch(`/api/v1/members/${id}`)
-      .then((res) => res.json())
+    getMember(id)
       .then((data) => {
         if (data.success) {
-          setMember(data.member);
+          setMember(data.member as Member);
         } else {
-          setMessage({ type: 'error', text: 'Failed to load member' });
+          setMessage({ type: 'error', text: data.error || 'Failed to load member' });
         }
       })
       .catch(() => {
@@ -108,10 +107,9 @@ export default function MemberDetailPage() {
 
     if (result.success) {
       // Refresh member data
-      const response = await fetch(`/api/v1/members/${id}`);
-      const data = await response.json();
+      const data = await getMember(id);
       if (data.success) {
-        setMember(data.member);
+        setMember(data.member as Member);
       }
       setNewNote('');
       setMessage({ type: 'success', text: 'Note added successfully' });
@@ -153,7 +151,7 @@ export default function MemberDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-24">
+      <div className="py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <p className="text-gray-500">Loading member details...</p>
@@ -165,7 +163,7 @@ export default function MemberDetailPage() {
 
   if (!member) {
     return (
-      <div className="min-h-screen bg-gray-50 py-24">
+      <div className="py-6">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <p className="text-gray-500">Member not found</p>
@@ -196,7 +194,7 @@ export default function MemberDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-24">
+    <div className="py-6">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

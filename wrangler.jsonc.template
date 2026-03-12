@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
-  "name": "invest-collective-site",
+  "name": "invest-collective-site-develop",
   "compatibility_date": "2026-01-02",
   "compatibility_flags": ["nodejs_compat"],
   "main": ".open-next/worker.js",
