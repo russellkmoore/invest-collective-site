@@ -281,6 +281,7 @@ export async function updateDataPointValue(
 
     revalidatePath('/admin/thesis');
     revalidatePath('/thesis-tracker');
+    revalidatePath('/thesis-tracker/performance');
 
     return { success: true };
   } catch (error) {
@@ -343,28 +344,34 @@ export async function closeThesis(
       .where(eq(thesisDataPoints.thesis_id, thesisId));
 
     const outcomeScore = calculateOutcomeScore(dataPoints as unknown as ThesisDataPoint[]);
+    const outcomeCorrect = outcomeScore >= 70;
 
-    // Mark thesis as closed with outcome score
+    // Mark thesis as closed with outcome score and correctness determination
     await db
       .update(theses)
       .set({
         status: 'closed',
         outcome_score: outcomeScore,
+        outcome_correct: outcomeCorrect,
         closed_at: sql`datetime('now')`,
         updated_at: sql`datetime('now')`,
       })
       .where(eq(theses.id, thesisId));
 
-    // Add closing commentary to update log
+    // Add closing commentary to update log (commentary is optional)
+    const commentContent = closingCommentary.trim()
+      ? `Thesis closed: ${closingCommentary}`
+      : 'Thesis closed';
     await db.insert(thesisUpdates).values({
       thesis_id: thesisId,
       update_type: 'status_change',
-      content: `Thesis closed: ${closingCommentary}`,
+      content: commentContent,
       created_by: closedBy,
     });
 
     revalidatePath('/admin/thesis');
     revalidatePath('/thesis-tracker');
+    revalidatePath('/thesis-tracker/performance');
 
     return { success: true };
   } catch (error) {
@@ -374,6 +381,25 @@ export async function closeThesis(
       error: error instanceof Error ? error.message : 'Failed to close thesis',
     };
   }
+}
+
+/**
+ * Get the historical value entries for a specific data point.
+ * Returns up to 50 most recent entries, ordered newest first.
+ */
+export async function getDataPointHistory(dataPointId: number): Promise<{
+  id: number;
+  value: number;
+  timestamp: string;
+  source: string | null;
+}[]> {
+  const db = getDb();
+  return db
+    .select()
+    .from(thesisDataHistory)
+    .where(eq(thesisDataHistory.data_point_id, dataPointId))
+    .orderBy(desc(thesisDataHistory.timestamp))
+    .limit(50);
 }
 
 /**
