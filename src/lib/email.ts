@@ -153,7 +153,7 @@ export async function sendWelcomeEmail(
     const resend = new Resend(apiKey);
 
     const { error } = await resend.emails.send({
-      from: 'The Invest Collective <noreply@investcollective.com>',
+      from: 'The Invest Collective <noreply@theinvestcollective.com>',
       to: member.email,
       subject: 'Welcome to The Invest Collective!',
       html: buildWelcomeEmailHtml(member.name),
