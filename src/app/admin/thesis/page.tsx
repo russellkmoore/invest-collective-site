@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plus, TrendingUp, Clock, Target, ChevronLeft } from 'lucide-react';
+import { Plus, TrendingUp, Clock, Target, ChevronLeft, AlertCircle } from 'lucide-react';
 import { getAllTheses } from './actions';
 import {
   getStatusColor,
@@ -208,6 +208,13 @@ export default async function AdminThesisListPage() {
                       <Clock className="w-4 h-4 inline mr-1" />
                       {daysRemaining} days left
                     </div>
+
+                    {new Date(thesis.prediction_end_date) < new Date() && (
+                      <div className="mt-3 flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>Expired — Resolve Now</span>
+                      </div>
+                    )}
                   </Link>
                 );
               })}
