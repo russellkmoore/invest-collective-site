@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Save,
   Trash2,
   Clock,
@@ -13,6 +15,7 @@ import {
   MessageSquare,
   XCircle,
   CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import {
   getThesisBySlug,
@@ -20,6 +23,7 @@ import {
   addThesisComment,
   closeThesis,
   deleteThesis,
+  getDataPointHistory,
 } from '../actions';
 import {
   getStatusColor,
@@ -28,6 +32,13 @@ import {
   type Thesis,
   type ThesisDataPoint,
 } from '@/lib/thesis-scoring';
+
+interface HistoryEntry {
+  id: number;
+  value: number;
+  timestamp: string;
+  source: string | null;
+}
 
 export default function ThesisManagePage({ params }: { params: { slug: string } }) {
   const router = useRouter();
@@ -42,6 +53,11 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
   const [updateValues, setUpdateValues] = useState<Record<number, string>>({});
   const [comment, setComment] = useState('');
   const [closingCommentary, setClosingCommentary] = useState('');
+
+  // History state: cache loaded entries per data point
+  const [history, setHistory] = useState<Record<number, HistoryEntry[]>>({});
+  const [loadedHistoryIds, setLoadedHistoryIds] = useState<Set<number>>(new Set());
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     async function fetchThesis() {
@@ -74,6 +90,34 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
     fetchThesis();
   }, [params.slug]);
 
+  const handleToggleHistory = async (dpId: number) => {
+    const isExpanded = expandedHistoryIds.has(dpId);
+
+    if (isExpanded) {
+      // Collapse
+      setExpandedHistoryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(dpId);
+        return next;
+      });
+    } else {
+      // Expand — load lazily if not yet fetched
+      setExpandedHistoryIds((prev) => new Set([...prev, dpId]));
+
+      if (!loadedHistoryIds.has(dpId)) {
+        try {
+          const entries = await getDataPointHistory(dpId);
+          setHistory((prev) => ({ ...prev, [dpId]: entries }));
+          setLoadedHistoryIds((prev) => new Set([...prev, dpId]));
+        } catch (error) {
+          console.error('Failed to load history:', error);
+          setHistory((prev) => ({ ...prev, [dpId]: [] }));
+          setLoadedHistoryIds((prev) => new Set([...prev, dpId]));
+        }
+      }
+    }
+  };
+
   const handleUpdateDataPoint = async (dataPointId: number) => {
     if (!updateValues[dataPointId]) {
       setMessage({ type: 'error', text: 'Please enter a value' });
@@ -92,6 +136,12 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
 
       if (result.success) {
         setMessage({ type: 'success', text: 'Data point updated successfully' });
+        // Invalidate history cache for this data point so next expand re-fetches
+        setLoadedHistoryIds((prev) => {
+          const next = new Set(prev);
+          next.delete(dataPointId);
+          return next;
+        });
         // Refresh thesis data
         const updated = await getThesisBySlug(params.slug);
         if (updated.thesis) {
@@ -133,10 +183,7 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
   };
 
   const handleCloseThesis = async () => {
-    if (!closingCommentary.trim() || !thesis) {
-      setMessage({ type: 'error', text: 'Please provide closing commentary' });
-      return;
-    }
+    if (!thesis) return;
 
     setUpdating(true);
     setMessage(null);
@@ -215,6 +262,8 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
     thesis.prediction_end_date
   );
   const isClosed = thesis.status === 'closed';
+  const isExpired =
+    thesis.status === 'active' && new Date(thesis.prediction_end_date) < new Date();
 
   return (
     <div className="py-6">
@@ -237,6 +286,24 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
             </button>
           )}
         </div>
+
+        {/* Expired resolve-now callout */}
+        {isExpired && (
+          <div className="mb-6 flex items-center justify-between gap-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="flex items-center gap-3 text-orange-700">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="text-sm font-medium">
+                This thesis has expired. Ready to resolve based on outcome score.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowCloseDialog(true)}
+              className="shrink-0 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              Resolve Now
+            </button>
+          </div>
+        )}
 
         {/* Message */}
         {message && (
@@ -332,104 +399,158 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Data Points</h2>
 
           <div className="space-y-4">
-            {dataPoints.map((dp) => (
-              <div key={dp.id} className="p-6 border border-gray-200 rounded-lg">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{dp.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {dp.metric_type.charAt(0).toUpperCase() + dp.metric_type.slice(1)} •{' '}
-                      {dp.data_source.replace('_', ' ')}
-                      {dp.data_source_identifier && ` (${dp.data_source_identifier})`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {dp.current_status === 'met' && (
-                      <div className="flex items-center gap-1 text-green-600">
-                        <CheckCircle className="w-5 h-5" />
-                        <span className="text-sm font-medium">Met</span>
-                      </div>
-                    )}
-                    {dp.current_status === 'on_track' && (
-                      <div className="flex items-center gap-1 text-blue-600">
-                        <TrendingUp className="w-5 h-5" />
-                        <span className="text-sm font-medium">On Track</span>
-                      </div>
-                    )}
-                    {dp.current_status === 'off_track' && (
-                      <div className="flex items-center gap-1 text-orange-600">
-                        <XCircle className="w-5 h-5" />
-                        <span className="text-sm font-medium">Off Track</span>
-                      </div>
-                    )}
-                    {dp.current_status === 'failed' && (
-                      <div className="flex items-center gap-1 text-red-600">
-                        <XCircle className="w-5 h-5" />
-                        <span className="text-sm font-medium">Failed</span>
-                      </div>
-                    )}
-                    {dp.current_status === 'pending' && (
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <Clock className="w-5 h-5" />
-                        <span className="text-sm font-medium">Pending</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+            {dataPoints.map((dp) => {
+              const isHistoryExpanded = expandedHistoryIds.has(dp.id);
+              const dpHistory = history[dp.id];
+              const historyLoaded = loadedHistoryIds.has(dp.id);
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Target</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {dp.target_direction.charAt(0).toUpperCase() + dp.target_direction.slice(1)}{' '}
-                      {dp.target_direction === 'between'
-                        ? `${dp.target_threshold_low} - ${dp.target_threshold_high}`
-                        : dp.target_value}
-                    </p>
+              return (
+                <div key={dp.id} className="p-6 border border-gray-200 rounded-lg">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{dp.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {dp.metric_type.charAt(0).toUpperCase() + dp.metric_type.slice(1)} •{' '}
+                        {dp.data_source.replace('_', ' ')}
+                        {dp.data_source_identifier && ` (${dp.data_source_identifier})`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {dp.current_status === 'met' && (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="w-5 h-5" />
+                          <span className="text-sm font-medium">Met</span>
+                        </div>
+                      )}
+                      {dp.current_status === 'on_track' && (
+                        <div className="flex items-center gap-1 text-blue-600">
+                          <TrendingUp className="w-5 h-5" />
+                          <span className="text-sm font-medium">On Track</span>
+                        </div>
+                      )}
+                      {dp.current_status === 'off_track' && (
+                        <div className="flex items-center gap-1 text-orange-600">
+                          <XCircle className="w-5 h-5" />
+                          <span className="text-sm font-medium">Off Track</span>
+                        </div>
+                      )}
+                      {dp.current_status === 'failed' && (
+                        <div className="flex items-center gap-1 text-red-600">
+                          <XCircle className="w-5 h-5" />
+                          <span className="text-sm font-medium">Failed</span>
+                        </div>
+                      )}
+                      {dp.current_status === 'pending' && (
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <Clock className="w-5 h-5" />
+                          <span className="text-sm font-medium">Pending</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Current Value</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {dp.current_value !== undefined && dp.current_value !== null
-                        ? dp.current_value
-                        : 'Not set'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Last Updated</p>
-                    <p className="text-sm text-gray-900">
-                      {dp.last_updated ? new Date(dp.last_updated).toLocaleString() : 'Never'}
-                    </p>
-                  </div>
-                </div>
 
-                {!isClosed && (
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      step="any"
-                      value={updateValues[dp.id] || ''}
-                      onChange={(e) =>
-                        setUpdateValues({
-                          ...updateValues,
-                          [dp.id]: e.target.value,
-                        })
-                      }
-                      placeholder="Enter new value"
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Target</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {dp.target_direction.charAt(0).toUpperCase() + dp.target_direction.slice(1)}{' '}
+                        {dp.target_direction === 'between'
+                          ? `${dp.target_threshold_low} - ${dp.target_threshold_high}`
+                          : dp.target_value}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Current Value</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {dp.current_value !== undefined && dp.current_value !== null
+                          ? dp.current_value
+                          : 'Not set'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Last Updated</p>
+                      <p className="text-sm text-gray-900">
+                        {dp.last_updated ? new Date(dp.last_updated).toLocaleString() : 'Never'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!isClosed && (
+                    <div className="flex gap-2 mb-4">
+                      <input
+                        type="number"
+                        step="any"
+                        value={updateValues[dp.id] || ''}
+                        onChange={(e) =>
+                          setUpdateValues({
+                            ...updateValues,
+                            [dp.id]: e.target.value,
+                          })
+                        }
+                        placeholder="Enter new value"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <button
+                        onClick={() => handleUpdateDataPoint(dp.id)}
+                        disabled={updating}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        Update
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Expandable history */}
+                  <div>
                     <button
-                      onClick={() => handleUpdateDataPoint(dp.id)}
-                      disabled={updating}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                      onClick={() => handleToggleHistory(dp.id)}
+                      className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
                     >
-                      <Save className="w-4 h-4" />
-                      Update
+                      {isHistoryExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                      {isHistoryExpanded ? 'Hide history' : 'View history'}
                     </button>
+
+                    {isHistoryExpanded && (
+                      <div className="mt-3 border-t border-gray-100 pt-3">
+                        {!historyLoaded ? (
+                          <p className="text-sm text-gray-400 italic">Loading history...</p>
+                        ) : dpHistory && dpHistory.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-left text-gray-500 border-b border-gray-100">
+                                  <th className="pb-2 pr-6 font-medium">Value</th>
+                                  <th className="pb-2 pr-6 font-medium">Timestamp</th>
+                                  <th className="pb-2 font-medium">Source</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-50">
+                                {dpHistory.map((entry) => (
+                                  <tr key={entry.id} className="text-gray-700">
+                                    <td className="py-2 pr-6 font-mono">{entry.value}</td>
+                                    <td className="py-2 pr-6 text-gray-500">
+                                      {new Date(entry.timestamp).toLocaleString()}
+                                    </td>
+                                    <td className="py-2 text-gray-500">{entry.source || '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No history yet</p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -509,8 +630,11 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
             <div className="bg-white rounded-lg p-6 max-w-md w-full">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Close Thesis</h3>
               <p className="text-gray-600 mb-4">
-                Provide closing commentary to explain the final outcome:
+                The outcome score will be calculated automatically from data point statuses.
               </p>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Closing Commentary (optional)
+              </label>
               <textarea
                 value={closingCommentary}
                 onChange={(e) => setClosingCommentary(e.target.value)}
@@ -527,7 +651,7 @@ export default function ThesisManagePage({ params }: { params: { slug: string } 
                 </button>
                 <button
                   onClick={handleCloseThesis}
-                  disabled={updating || !closingCommentary.trim()}
+                  disabled={updating}
                   className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400"
                 >
                   {updating ? 'Closing...' : 'Close Thesis'}
