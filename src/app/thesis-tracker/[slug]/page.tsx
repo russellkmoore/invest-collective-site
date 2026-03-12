@@ -8,6 +8,7 @@ import {
   calculateTimeProgress,
 } from '@/lib/thesis-scoring';
 import { notFound } from 'next/navigation';
+import { GenerationBadge } from '@/components/ThesisCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,7 @@ export default async function ThesisDetailPage({ params }: { params: { slug: str
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div className="flex-1">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">{thesis.title}</h1>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded">
                   {thesis.category.replace('_', ' ').toUpperCase()}
                 </span>
@@ -79,6 +80,7 @@ export default async function ThesisDetailPage({ params }: { params: { slug: str
                 >
                   {isActive ? 'Active' : 'Closed'}
                 </span>
+                <GenerationBadge method={thesis.generation_method} />
               </div>
             </div>
             <div className="text-center">

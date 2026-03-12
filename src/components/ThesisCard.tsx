@@ -11,6 +11,22 @@ interface ThesisCardProps {
   href: string;
 }
 
+export function GenerationBadge({ method }: { method?: string | null }) {
+  const isHuman = !method || method === 'manual';
+  if (isHuman) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-blue-200 bg-blue-50 text-blue-700">
+        Human
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-purple-200 bg-purple-50 text-purple-700">
+      AI
+    </span>
+  );
+}
+
 export default function ThesisCard({ thesis, href }: ThesisCardProps) {
   const tags = JSON.parse(thesis.tags) as string[];
   const isActive = thesis.status === 'active';
@@ -38,8 +54,11 @@ export default function ThesisCard({ thesis, href }: ThesisCardProps) {
     >
       {/* Header */}
       <div className="mb-4">
-        <div className="text-xs text-gray-500 uppercase mb-2 font-medium">
-          {thesis.category.replace('_', ' ')}
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-gray-500 uppercase font-medium">
+            {thesis.category.replace('_', ' ')}
+          </div>
+          <GenerationBadge method={thesis.generation_method} />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
           {thesis.title}
