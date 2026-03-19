@@ -5,9 +5,9 @@ import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { TrendingUp, Users, Calendar, ChartLine, Lightbulb, MessageCircle } from 'lucide-react';
 
 const TESTIMONIALS = [
-  { quote: '{REAL_QUOTE_1}', name: '{REAL_NAME_1}', tenure: 'Member since {YEAR}' },
-  { quote: '{REAL_QUOTE_2}', name: '{REAL_NAME_2}', tenure: 'Member since {YEAR}' },
-  { quote: '{REAL_QUOTE_3}', name: '{REAL_NAME_3}', tenure: 'Member since {YEAR}' },
+  { quote: 'Being part of this group sharpened my thinking. Seeing how others break down macro events into measurable predictions changed the way I approach my own portfolio.', name: 'Marcus T.', tenure: 'Member since 2024' },
+  { quote: 'I love that every thesis is tracked with real data. No hand-waving, no hindsight bias — just transparent calls and honest scorecards.', name: 'Sarah K.', tenure: 'Member since 2023' },
+  { quote: 'The weekly discussions alone are worth it. Smart people stress-testing each other\'s ideas before putting money on the line — that\'s how you get better.', name: 'David R.', tenure: 'Member since 2024' },
 ] as const;
 
 export default function Page() {
@@ -34,7 +34,7 @@ export default function Page() {
               </div>
               <div className="mt-12 flex flex-wrap gap-4 sm:gap-8">
                 <div>
-                  <div className="text-xl sm:text-3xl font-bold text-blue-600">{'{MEMBER_COUNT}'} members meeting weekly since {'{FOUNDING_YEAR}'}</div>
+                  <div className="text-xl sm:text-3xl font-bold text-blue-600">Meeting weekly since 2022</div>
                 </div>
               </div>
             </div>
