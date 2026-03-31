@@ -192,4 +192,46 @@ By using this website, you acknowledge and agree that:
 
 ## Contact Us
 
-If you have questions about this disclaimer, please contact us at [contact email].', 'system');
+If you have questions about this disclaimer, please contact us at [contact email].', 'system'),
+
+('faq', 'Frequently Asked Questions', '# Frequently Asked Questions
+
+## What is The Invest Collective?
+
+The Invest Collective is a private investment research group where members collaborate on market analysis, share investment theses, and track predictive accuracy over time. We combine human insight with AI-generated analysis to build a transparent track record.
+
+## How does the thesis tracker work?
+
+Members and AI submit investment theses — predictions about specific market events with measurable data points. Each thesis is tracked against real market data and scored for accuracy when it reaches its prediction window. This creates a transparent, verifiable track record.
+
+## Is this financial advice?
+
+No. Nothing on this site constitutes financial advice. We are an educational and research-focused community. All members are responsible for their own investment decisions. Please see our [Investment Disclaimer](/disclaimer) for full details.
+
+## How are theses scored?
+
+Each thesis includes 2-8 measurable data points (e.g., "S&P 500 above 5,000 by Q2 2025"). When the prediction window closes, each data point is evaluated against actual market data. The overall score is the percentage of data points that hit their targets.
+
+## What is the difference between Human and AI theses?
+
+Every thesis is labeled with its origin — Human or AI. This lets us compare predictive accuracy between human analysts and AI models over time, creating an honest benchmark for both.
+
+## How do I become a member?
+
+Membership is currently by invitation only. If you are interested in joining, reach out through our contact page and tell us about your investment background and what you hope to contribute.
+
+## What data sources do you use?
+
+We pull real-time and historical data from sources including Yahoo Finance (stock prices, indices, commodities) and FRED (Federal Reserve economic data like interest rates, inflation, and employment figures).
+
+## How often are theses updated?
+
+Data points are updated regularly as new market data becomes available. Theses remain active until their prediction end date, at which point they are resolved and scored.
+
+## Can I see the track record without being a member?
+
+Yes. Our thesis tracker and performance dashboard are publicly visible. We believe in full transparency — anyone can see our calls and how they performed.
+
+## Who runs The Invest Collective?
+
+We are a small group of investment enthusiasts and technologists who believe in accountable, data-driven investing. We are not registered investment advisors.', 'system');

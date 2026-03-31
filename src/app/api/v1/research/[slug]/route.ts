@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDbAsync } from '@/lib/db';
 import { articles } from '../../../../../../drizzle/schema';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { withApiKey } from '@/lib/api-auth';
 import { updateArticleSchema } from '@/lib/validation-schemas';
@@ -10,8 +10,7 @@ type Context = { params: Promise<{ slug: string }> };
 
 /**
  * GET /api/v1/research/[slug]
- * Fetch a single published article. Public.
- * Filters by status='published' — drafts are not accessible without auth.
+ * Fetch a single article by slug. Public.
  */
 export async function GET(req: NextRequest, { params }: Context) {
   try {
@@ -21,7 +20,7 @@ export async function GET(req: NextRequest, { params }: Context) {
     const article = await db
       .select()
       .from(articles)
-      .where(and(eq(articles.slug, slug), eq(articles.status, 'published')))
+      .where(eq(articles.slug, slug))
       .get();
 
     if (!article) {

@@ -44,7 +44,8 @@ export default function EditArticlePage({ params }: { params: { slug: string } }
         const response = await fetch(`/api/v1/research/${params.slug}`);
         if (!response.ok) throw new Error('Article not found');
 
-        const data = await response.json();
+        const json = await response.json();
+        const data = json.data ?? json;
         setArticle(data);
 
         const topics = JSON.parse(data.topics).join(', ');

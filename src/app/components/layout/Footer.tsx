@@ -83,9 +83,6 @@ export function Footer() {
                   info@theinvestcollective.com
                 </a>
               </li>
-              <li>(555) 123-4567</li>
-              <li>123 Market Street</li>
-              <li>New York, NY 10001</li>
             </ul>
           </div>
         </div>
@@ -101,6 +98,9 @@ export function Footer() {
               </Link>
               <Link href="/disclaimer" className="hover:text-white transition-colors">
                 Disclaimer
+              </Link>
+              <Link href="/faq" className="hover:text-white transition-colors">
+                FAQ
               </Link>
             </div>
           </div>
